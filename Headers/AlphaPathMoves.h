@@ -1,3 +1,77 @@
+/*
+#################################################################################
+#                                                                            	#
+# 								AlphaPathMoves 								    #
+# software for optimizing Hierarchically-structured Interacting Segments (HINTS)#
+#			                     Beta Version                                   #
+#                                                                            	#
+#    				Copyright  Hossam Isack 									#
+#						       isack.hossam@gmal.com							#
+#							   http://www.hossamisack.com						#
+#              			                                                        #
+#################################################################################
+
+
+  Minimum requirements 
+	[1] 64-bit machine
+	[2] C++11 
+	[3] CUDA architecture sm_30 or higher
+
+  To use this software, YOU MUST CITE the following in any resulting publication:
+
+    [1] Efficient optimization for Hierarchically-structured Interacting Segments (HINTS)
+		Hossam Isack, Olga Veksler, Ipek Oguz, Milan Sonka, and Yuri Boykov.
+		@inproceedings{pathmovesIsack, title={Efficient optimization for Hierarchically-structured 
+		Interacting Segments ({HINTS})}, author={Isack, Hossam and Veksler, Olga and Oguz, Ipek and 
+		Sonka, Milan and Boykov, Yuri}, booktitle = {IEEE Conference on Computer Vision and Pattern 
+		Recognition}, year = {2017}}
+
+  Furthermore, if you using Hedgehog shape prior, you should cite
+
+    [4] Hedgehog Shape Priors for Multi-object Segmentation
+		Hossam Isack, Olga Veksler, Milan Sonka, and Yuri Boykov.		
+		@inproceedings{hedgehogIsack, title={Hedgehog Shape Priors for Multi-object Segmentation},
+		author={Isack, Hossam and Veksler, Olga and Sonka, Milan and Boykov, Yuri}, 
+		booktitle = {IEEE Conference on Computer Vision and Pattern Recognition}, year = {2016}}
+	
+  This software can be used only for research purposes. For commercial purposes, 
+  please contacnt Hossam Isack.
+
+  ##################################################################
+
+    License & disclaimer.
+
+    Copyright Hossam Isack 	<isack.hossam@gmal.com>
+
+    This software and its modifications can be used and distributed for 
+    research purposes only. Publications resulting from use of this code
+    must cite publications according to the rules given above. Only
+    Hossam Isack has the right to redistribute this code, unless expressed
+    permission is given otherwise. Commercial use of this code, any of 
+    its parts, or its modifications is not permited. The copyright notices 
+    must not be removed in case of any modifications. This Licence 
+    commences on the date it is electronically or physically delivered 
+    to you and continues in effect unless you fail to comply with any of 
+    the terms of the License and fail to cure such breach within 30 days 
+    of becoming aware of the breach, in which case the Licence automatically 
+    terminates. This Licence is governed by the laws of Canada and all 
+    disputes arising from or relating to this Licence must be brought 
+    in Toronto, Ontario.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+    OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+##################################################################
+*/
 #ifndef __ALPHAPATHMOVES_H__
 #define __ALPHAPATHMOVES_H__
 #include "BK\graph.h"
@@ -16,6 +90,7 @@
 #include <utility>
 #include <thread>
 #include <queue>
+#include <cstdint>
 #include "BasicGraph.h"
 #include "MaxflowSolver.h"
 #include "TS_Logger.h"
@@ -32,15 +107,15 @@
 #define getqidx(dx, dy, dz, r, twor1, twor1_sq, includeZ) (dx+r+twor1*(dy+r)+includeZ*twor1_sq*(dz+r))
 #define getConvIdx(r,twor1,includeZ) (2 * r + 2 * r * twor1 + 2 * r* twor1*twor1 * includeZ)
 #define INLINE_SETBIT(p,idx) \
-	unsigned long int bnk_id = (idx / 64); \
-	minmarginBIT->edges.data[p*minmarginBIT->n_banks + bnk_id] |= (((size_t)1) << (idx - bnk_id * 64));
+	uint32_t bnk_id = (idx / 64); \
+	minmarginBIT->edges.data[p*minmarginBIT->n_banks + bnk_id] |= (((uint64_t)1) << (idx - bnk_id * 64));
 #define INLINE_LOOKUPSETBIT(p,idx) \
-	minmarginBIT->edges.data[p*minmarginBIT->n_banks + minmarginBIT->gbitid2bnkid[idx]] |= (((size_t)1) << minmarginBIT->gbitid2bitid[idx]);
+	minmarginBIT->edges.data[p*minmarginBIT->n_banks + minmarginBIT->gbitid2bnkid[idx]] |= (((uint64_t)1) << minmarginBIT->gbitid2bitid[idx]);
 
 
 using namespace Utilities;
 
-double default_getWpq_Euclidean(long long, long long, const void *) { return 1; }
+double default_getWpq_Euclidean(int64_t, int64_t, const void *) { return 1; }
 
 
 namespace GC{
@@ -50,61 +125,61 @@ namespace GC{
 		enum class MinMarginMethod { IDX_BASED, BIT_BASED, CUDA_BASED };
 	private:
 		
-		unsigned long int nlabels;
-		ssize_t dims[3];
-		long int * child2parent; //This MUST BE signed because the root has no parent, and it is identified by having -1 as its parent
-		Array3D<long int> *paths; 
-		Array2D<long int> *paths_lengths; //resereved for future use
+		uint32_t nlabels;
+		int64_t dims[3];
+		int32_t * child2parent; //This MUST BE signed because the root has no parent, and it is identified by having -1 as its parent
+		Array3D<int32_t> *paths; 
+		Array2D<int32_t> *paths_lengths; //resereved for future use
 		Array2D<tcaptype> *dataterms;
 
 		
 
 		//Constructed Graph
-		ssize_t ndspl, gc_nds;
-		unsigned long int max_nlayers;
+		int64_t ndspl, gc_nds;
+		uint32_t max_nlayers;
 		BasicGraph<captype, tcaptype> *graph;
-		unsigned long int *labeling;
+		uint32_t *labeling;
 		std::vector<std::thread> labeling_writingthreads;
 		MaxflowSolver<captype, tcaptype, flowtype> * maxflow_solver;
 
 
 		//Smoothness Prior
 		double lambda;
-		Array2D<long int>   * sm_nh_shifts;
+		Array2D<int32_t>   * sm_nh_shifts;
 		Array2D<double> * treemetric;
-		std::function<double(long long, long long, const void *)> func_getWpq; // function called to compute wpq
+		std::function<double(int64_t, int64_t, const void *)> func_getWpq; // function called to compute wpq
 		const void * wpq_extra_data; //extra data sent to func_getWpq along with p and q index
 
 		//Hedgehog Priors
-		unsigned long int hhog_radius;
+		uint32_t hhog_radius;
 		bool hhogprior_status;
 		std::vector<bool> hhoglabel_status;
-		Array2D<long int> * hhog_nh_shifts;
+		Array2D<int32_t> * hhog_nh_shifts;
 		Array2D<char> ** hhogconstraints;
 		double hhog_theta;
 
 		//Min-Margin Priors
 		MinMarginMethod mm_method;
-		unsigned long int max_n_mm_nhs, max_mm_r;
-		Array2D<long int>   ** mm_nh_shifts;
+		uint32_t max_n_mm_nhs, max_mm_r;
+		Array2D<int32_t>   ** mm_nh_shifts;
 		struct MinMarginIDX{
-			MinMarginIDX(long int max_n_mm_nhs, size_t ndspl, long int nlabels, long int * child2parent)
+			MinMarginIDX(int32_t max_n_mm_nhs, uint64_t ndspl, int32_t nlabels, int32_t * child2parent)
 			{
 				edges.allocate(max_n_mm_nhs,ndspl);
 				std::fill_n(edges.data,ndspl*max_n_mm_nhs, -1);
 
-				InSubTree = new Array2D<long int>(); // InSubTree(x,y) if 1 then x in Tree(y) 0 otherwise
+				InSubTree = new Array2D<int32_t>(); // InSubTree(x,y) if 1 then x in Tree(y) 0 otherwise
 				InSubTree->allocate(nlabels,nlabels);
 				InSubTree->fill(0);
-				for (long int x = 0; x < nlabels; x++)
-					for (long int parent_id = x; parent_id != -1; parent_id = child2parent[parent_id])
+				for (int32_t x = 0; x < nlabels; x++)
+					for (int32_t parent_id = x; parent_id != -1; parent_id = child2parent[parent_id])
 						InSubTree->data[x + parent_id* InSubTree->constX] = 1;
 
-				NotInSubTreeOrParent = new Array2D<long int>(); // NotInSubTreeOrParent(x,y) if 1 then x not (in Tree(y) or Parent[y]) 0 otherwise
+				NotInSubTreeOrParent = new Array2D<int32_t>(); // NotInSubTreeOrParent(x,y) if 1 then x not (in Tree(y) or Parent[y]) 0 otherwise
 				NotInSubTreeOrParent->allocate(nlabels, nlabels);
 				NotInSubTreeOrParent->fill(0);
-				for (long int x = 0; x < nlabels; x++)
-					for (long int y = 0; y < nlabels; y++)
+				for (int32_t x = 0; x < nlabels; x++)
+					for (int32_t y = 0; y < nlabels; y++)
 						if (!(InSubTree->data[x + y*NotInSubTreeOrParent->constX] || child2parent[y] == x))
 							NotInSubTreeOrParent->data[x + y*NotInSubTreeOrParent->constX] = 1;
 			};
@@ -114,31 +189,31 @@ namespace GC{
 				CLNDEL0D(NotInSubTreeOrParent);
 			}
 
-			Array2D<long int> * InSubTree, *NotInSubTreeOrParent;
-			Array2D<ssize_t>  edges;
+			Array2D<int32_t> * InSubTree, *NotInSubTreeOrParent;
+			Array2D<int64_t>  edges;
 		} * minmarginIDX; // helper data structure for the IDX encoding;
 		struct MinMarginBIT
 		{
-			MinMarginBIT(long int max_n_mm_nhs, size_t ndspl, long int max_mm_r, Array2D<long int> * mm_shifts)
+			MinMarginBIT(int32_t max_n_mm_nhs, uint64_t ndspl, int32_t max_mm_r, Array2D<int32_t> * mm_shifts)
 			{
 				max_mm_ws = 2 * max_mm_r + 1;
 
-				gbitid2shift = new long int[pow3(max_mm_ws) * 3];
+				gbitid2shift = new int32_t[pow3(max_mm_ws) * 3];
 				std::fill_n(gbitid2shift, pow3(max_mm_ws) * 3, -1);
 
-				shift2gbitid = new long int **[max_mm_ws];
-				for (long int x = 0; x < max_mm_ws; ++x)
+				shift2gbitid = new int32_t **[max_mm_ws];
+				for (int32_t x = 0; x < max_mm_ws; ++x)
 				{
-					shift2gbitid[x] = new long int *[max_mm_ws];
-					for (long int y = 0; y < max_mm_ws; ++y)
+					shift2gbitid[x] = new int32_t *[max_mm_ws];
+					for (int32_t y = 0; y < max_mm_ws; ++y)
 					{
-						shift2gbitid[x][y] = new long int[max_mm_ws];
+						shift2gbitid[x][y] = new int32_t[max_mm_ws];
 						std::fill_n(shift2gbitid[x][y], max_mm_ws, -1);
 					}
 
 				}
-				long int dx, dy, dz;
-				for (long int shift_id = 0, bitid = 0; shift_id < mm_shifts->Y; shift_id++, bitid++)
+				int32_t dx, dy, dz;
+				for (int32_t shift_id = 0, bitid = 0; shift_id < mm_shifts->Y; shift_id++, bitid++)
 				{
 					dx = mm_shifts->data[shift_id * 3 + 0];
 					dy = mm_shifts->data[shift_id * 3 + 1];
@@ -150,24 +225,24 @@ namespace GC{
 					shift2gbitid[dx + max_mm_r][dy + max_mm_r][dz + max_mm_r] = bitid;
 				}
 				//shift2gbitid to avoid adding max_mm_r all the time 
-				for (long int x = 0; x < max_mm_ws; ++x)
+				for (int32_t x = 0; x < max_mm_ws; ++x)
 				{
-					for (long int y = 0; y < max_mm_ws; ++y)
+					for (int32_t y = 0; y < max_mm_ws; ++y)
 						shift2gbitid[x][y] += max_mm_r;
 					shift2gbitid[x] += max_mm_r;
 				}
 				shift2gbitid += max_mm_r;
-				n_banks = (size_t)ceil((double)max_n_mm_nhs / 64.0);
+				n_banks = (uint64_t)ceil((double)max_n_mm_nhs / 64.0);
 				edges.allocate(n_banks, ndspl);
 				n_usedbits = max_n_mm_nhs;
-				memset(edges.data, 0, sizeof(size_t)*n_banks*ndspl);
+				memset(edges.data, 0, sizeof(uint64_t)*n_banks*ndspl);
 
-				gbitid2bnkid = new long int[n_banks * 64];
-				gbitid2bitid = new long int[n_banks * 64];
-				for (unsigned long int bnk_id = 0, g_bitid = 0; bnk_id < n_banks; ++bnk_id)
+				gbitid2bnkid = new int32_t[n_banks * 64];
+				gbitid2bitid = new int32_t[n_banks * 64];
+				for (uint32_t bnk_id = 0, g_bitid = 0; bnk_id < n_banks; ++bnk_id)
 				{
 					std::fill_n(gbitid2bnkid + bnk_id * 64, 64, bnk_id);
-					for (unsigned long int itr = 0; itr < 64; itr++, ++g_bitid)
+					for (uint32_t itr = 0; itr < 64; itr++, ++g_bitid)
 						gbitid2bitid[g_bitid] = itr;
 				}
 			}
@@ -175,17 +250,17 @@ namespace GC{
 			{
 				//Before deleting shift2gbitid, revert it to its original indexing base
 				//Reminder:shift2gbitid was modified to make it point to the center of the allocated memory (so we can used dx,dy,dz without adding offest)
-				long int max_mm_r = (max_mm_ws - 1) / 2;
+				int32_t max_mm_r = (max_mm_ws - 1) / 2;
 				if (shift2gbitid != nullptr)
 				{
 					shift2gbitid -= max_mm_r;
-					for (long int x = 0; x < max_mm_ws; ++x)
+					for (int32_t x = 0; x < max_mm_ws; ++x)
 					{
 						shift2gbitid[x] -= max_mm_r;
-						for (long int y = 0; y < max_mm_ws; ++y)
+						for (int32_t y = 0; y < max_mm_ws; ++y)
 							shift2gbitid[x][y] -= max_mm_r;
 					}
-					for (long int x = 0; x < max_mm_ws; ++x)
+					for (int32_t x = 0; x < max_mm_ws; ++x)
 						CLNDEL2D(shift2gbitid[x], max_mm_ws);
 					delete[](shift2gbitid);
 					shift2gbitid = nullptr;
@@ -194,14 +269,14 @@ namespace GC{
 				CLNDEL1D(gbitid2bnkid);
 				CLNDEL1D(gbitid2bitid);
 			}
-			Array2D<size_t> edges;
-			long int max_mm_ws;        // holds larget min-margin window size = 2*max_mm_r+1
-			size_t n_banks;       // the number of  n size_t allocated for each voxel
-			size_t n_usedbits;    // the total number bits used out of the n_banks*sizeof(size_t) bits to encode minmargin edges.
-			long int ***shift2gbitid;  // a 3D lookup table from minmargin shift [dx] [dy] [dz] to its corresponding global bit_id (w.r.t. n_usedbits) 
-			long int *gbitid2shift;    // a 1D lookup table from global bit_id (w.r.t. n_usedbits) to its corresponding mm shift (dx,dy,dz).
-			long int * gbitid2bnkid;   // a 1D lookup table from a global bit id to its corresponding bank (out of the n_banks)
-			long int * gbitid2bitid;   // a 1D lookup table from a global bit id to bit id w.r.t. to its corresponding bank
+			Array2D<uint64_t> edges;
+			int32_t max_mm_ws;        // holds larget min-margin window size = 2*max_mm_r+1
+			uint64_t n_banks;       // the number of  n uint64_t allocated for each voxel
+			uint64_t n_usedbits;    // the total number bits used out of the n_banks*sizeof(uint64_t) bits to encode minmargin edges.
+			int32_t ***shift2gbitid;  // a 3D lookup table from minmargin shift [dx] [dy] [dz] to its corresponding global bit_id (w.r.t. n_usedbits) 
+			int32_t *gbitid2shift;    // a 1D lookup table from global bit_id (w.r.t. n_usedbits) to its corresponding mm shift (dx,dy,dz).
+			int32_t * gbitid2bnkid;   // a 1D lookup table from a global bit id to its corresponding bank (out of the n_banks)
+			int32_t * gbitid2bitid;   // a 1D lookup table from a global bit id to bit id w.r.t. to its corresponding bank
 		} * minmarginBIT; // helper data structure for the BIT encoding;
 		MarginEdgesCuda * marginEdgesCuda;
 		
@@ -209,9 +284,9 @@ namespace GC{
 		struct ExpansionOrdering
 		{
 			enum class ExpansionOrderingType { CHAIN, VECTOR, SEED };
-			long int chain_str_idx, chain_end_idx; //in case of a chain
-			long int randomization_seed; 
-			Array2D<unsigned long int> label_ordering;
+			int32_t chain_str_idx, chain_end_idx; //in case of a chain
+			int32_t randomization_seed; 
+			Array2D<uint32_t> label_ordering;
 			ExpansionOrderingType type;
 		} expansionOrdering;
 		struct CalledFunctions
@@ -226,50 +301,50 @@ namespace GC{
 			bool default_mode;
 		} called_functions;
 
-		void setPairwiseSmoothnessGCArcs(Array3D<char> *, flowtype *, captype  *, ssize_t*, tcaptype *, ssize_t*, unsigned long int, unsigned long int);
-		void setMinMarginGCArcs(unsigned long int, unsigned long int);
+		void setPairwiseSmoothnessGCArcs(Array3D<char> *, flowtype *, captype  *, int64_t*, tcaptype *, int64_t*, uint32_t, uint32_t);
+		void setMinMarginGCArcs(uint32_t, uint32_t);
 		void setHedgehogGCArcs(Array3D<char> *);
 
-		void fillMarginConstraints_IDX_BASED(unsigned long int, unsigned long int);
-		void fillMarginConstraints_BIT_BASED(unsigned long int, unsigned long int);
-		void fillPairewisePathSmoothnessArcs(ssize_t, ssize_t, unsigned long int, unsigned long int, unsigned long int, captype *, ssize_t*, ssize_t &, tcaptype *,ssize_t*, ssize_t &);
-		void fillPathMoveHedgehogConstraints(Array3D<char> *, unsigned long int, unsigned long int);
+		void fillMarginConstraints_IDX_BASED(uint32_t, uint32_t);
+		void fillMarginConstraints_BIT_BASED(uint32_t, uint32_t);
+		void fillPairewisePathSmoothnessArcs(int64_t, int64_t, uint32_t, uint32_t, uint32_t, captype *, int64_t*, int64_t &, tcaptype *,int64_t*, int64_t &);
+		void fillPathMoveHedgehogConstraints(Array3D<char> *, uint32_t, uint32_t);
 		void setupMaxflowSolver(typename MaxflowSolver<captype, tcaptype, flowtype>::SolverName);
 		
 		
-		flowtype computeEnergyForLabeling(unsigned long int *);
-		flowtype computeEnergyForLabeling(unsigned long int *, flowtype &, flowtype &);
-		void saveLabelingToFile(unsigned long int *, std::string);
-		void convertGCBinLabeling2MultiLabeling(unsigned long int *, unsigned long int, char *);
+		flowtype computeEnergyForLabeling(uint32_t *);
+		flowtype computeEnergyForLabeling(uint32_t *, flowtype &, flowtype &);
+		void saveLabelingToFile(uint32_t *, std::string);
+		void convertGCBinLabeling2MultiLabeling(uint32_t *, uint32_t, char *);
 		captype LRG_PENALTY;
 		bool ValidateLabeling(char * , BasicGraph<captype, tcaptype> * ); //asserts that no inifity cost edges are severed
 	
 	public:
-		AlphaPathMoves(ssize_t dims[3], unsigned long int in_nlabels);
+		AlphaPathMoves(int64_t dims[3], uint32_t in_nlabels);
 		~AlphaPathMoves(void);
-		static captype getLargePenalty( long int n_dims) 
+		static captype getLargePenalty( int32_t n_dims) 
 		{ 
 			return std::min<captype>(10000000000, std::numeric_limits<captype>::max() / 100);
 		}
 		void getRuntime(double & , double &, double &);
-		void setWpqFunction(double(*in_getWpq)(long long, long long, const void * ), const void *);
+		void setWpqFunction(double(*in_getWpq)(int64_t, int64_t, const void * ), const void *);
 		void setDataTerms(const Array2D<tcaptype> * );
-		void setSmoothnessNeighbourhoodWindowSize(unsigned long int);
-		void setHedgehogAttributes(unsigned long int, const Array3D<long int> *, double);
+		void setSmoothnessNeighbourhoodWindowSize(uint32_t);
+		void setHedgehogAttributes(uint32_t, const Array3D<int32_t> *, double);
 		void setTreeWeights(double, const Array2D<double> *  );
-		void setMinimumMargins(const Array2D<unsigned long int> *in_minmargins_radii, MinMarginMethod in_mm_method = MinMarginMethod::CUDA_BASED);
-		void setInitialLabeling(const Array3D<unsigned long int> *);
-		void setInitialLabeling(unsigned long int);
-		void setExpansionOrdering(long int str_id = -1, long int exp_id = -1);
-		void setExpansionOrdering(long int seed);
-		void setExpansionOrdering(const Array2D<unsigned long int> * label_ordering);
-		Array3D<unsigned long int> * runPathMoves(typename MaxflowSolver<captype, tcaptype, flowtype>::SolverName, flowtype & final_energy);
+		void setMinimumMargins(const Array2D<uint32_t> *in_minmargins_radii, MinMarginMethod in_mm_method = MinMarginMethod::CUDA_BASED);
+		void setInitialLabeling(const Array3D<uint32_t> *);
+		void setInitialLabeling(uint32_t);
+		void setExpansionOrdering(int32_t str_id = -1, int32_t exp_id = -1);
+		void setExpansionOrdering(int32_t seed);
+		void setExpansionOrdering(const Array2D<uint32_t> * label_ordering);
+		Array3D<uint32_t> * runPathMoves(typename MaxflowSolver<captype, tcaptype, flowtype>::SolverName, flowtype & final_energy);
 	};
 	//The constructor accepts the following
 	//a- dims of the volume (it deals with 2D images as 3D volumes consisting of one slice)
 	//b- the number of labels
 	template <class captype, class tcaptype, class flowtype>
-	AlphaPathMoves<captype, tcaptype, flowtype>::AlphaPathMoves(ssize_t dims[3],  unsigned long int in_nlabels)
+	AlphaPathMoves<captype, tcaptype, flowtype>::AlphaPathMoves(int64_t dims[3],  uint32_t in_nlabels)
 	{
 		called_functions.default_mode = true;
 		if (dims[2]==1)
@@ -291,8 +366,8 @@ namespace GC{
 		this->ndspl = dims[0]* dims[1]* dims[2];
 		this->max_nlayers = 0;
 		this->gc_nds = 0;
-		this->labeling = new unsigned long int[this->ndspl];
-		std::memset(this->labeling, 0, this->ndspl*sizeof(unsigned long int));
+		this->labeling = new uint32_t[this->ndspl];
+		std::memset(this->labeling, 0, this->ndspl*sizeof(uint32_t));
 		this->labeling_writingthreads.clear();
 		this->graph = nullptr;
 		this->maxflow_solver = nullptr;
@@ -310,7 +385,7 @@ namespace GC{
 		this->hhoglabel_status.clear();
 		this->hhog_nh_shifts = nullptr;
 		this->hhogconstraints = new Array2D<char>*[this->nlabels];
-		for (unsigned long int i = 0; i < this->nlabels; ++i) 
+		for (uint32_t i = 0; i < this->nlabels; ++i) 
 			this->hhogconstraints[i] = nullptr;
 
 		//min-margins
@@ -321,7 +396,7 @@ namespace GC{
 		this->minmarginIDX = nullptr;
 		this->minmarginBIT = nullptr;
 		this->marginEdgesCuda = nullptr;
-		Array2D<unsigned long int> in_minmargins_radii;
+		Array2D<uint32_t> in_minmargins_radii;
 		in_minmargins_radii.allocate(this->nlabels, 1);
 		in_minmargins_radii.fill(0);
 		setMinimumMargins(&in_minmargins_radii, this->mm_method);
@@ -363,13 +438,13 @@ namespace GC{
 
 		//Hedgehog Prior
 		CLNDEL0D(hhog_nh_shifts);
-		for (unsigned long int i = 0; this->hhogconstraints != nullptr && i < this->nlabels; ++i)
+		for (uint32_t i = 0; this->hhogconstraints != nullptr && i < this->nlabels; ++i)
 			CLNDEL0D(this->hhogconstraints[i]);
 		CLNDEL1D(this->hhogconstraints);
 
 
 		//Min-margin prior
-		for (unsigned long int l = 0; this->mm_nh_shifts != nullptr && l < this->nlabels; ++l)
+		for (uint32_t l = 0; this->mm_nh_shifts != nullptr && l < this->nlabels; ++l)
 			CLNDEL0D(this->mm_nh_shifts[l]);
 		CLNDEL1D(this->mm_nh_shifts);
 		CLNDEL0D(minmarginIDX);
@@ -379,7 +454,7 @@ namespace GC{
 	//This function sets the W_pq cost function, it accepts a pointer to funtion
 	//the W_pq will be sent a- the volume as a double array, b- canny edges (if originaly set otherwise nullptr will be sent), c- p index, and d- q index
 	template <class captype, class tcaptype, class flowtype>
-	void AlphaPathMoves<captype, tcaptype, flowtype>::setWpqFunction(double(*in_getWpq)(long long, long long, const void * ), const void * wpq_extra_data)
+	void AlphaPathMoves<captype, tcaptype, flowtype>::setWpqFunction(double(*in_getWpq)(int64_t, int64_t, const void * ), const void * wpq_extra_data)
 	{
 		if (called_functions.sm_wpq_func)
 		{
@@ -394,14 +469,14 @@ namespace GC{
 	//a- an array consiting of the minmum margins for each label (even if it is 0) 
 	//b- the used method to compute/store minimum margins 
 	template <class captype, class tcaptype, class flowtype>
-	void AlphaPathMoves<captype, tcaptype, flowtype>::setMinimumMargins(const Array2D<unsigned long int> * in_minmargins_radii, MinMarginMethod in_mm_method)
+	void AlphaPathMoves<captype, tcaptype, flowtype>::setMinimumMargins(const Array2D<uint32_t> * in_minmargins_radii, MinMarginMethod in_mm_method)
 	{
 		if (!called_functions.default_mode && called_functions.mm_set)
 		{
 			bgn_log << LogType::ERROR << "APM: min-margins could be called only once\n" << end_log;
 			throw("APM: min-margins could be called only once");
 		}
-		for (unsigned long int l = 0; this->mm_nh_shifts != nullptr && l < this->nlabels; ++l)
+		for (uint32_t l = 0; this->mm_nh_shifts != nullptr && l < this->nlabels; ++l)
 			CLNDEL0D(this->mm_nh_shifts[l]);
 		CLNDEL1D(this->mm_nh_shifts);
 		CLNDEL0D(minmarginIDX);
@@ -409,12 +484,12 @@ namespace GC{
 		CLNDEL0D(marginEdgesCuda);
 
 		mm_method = in_mm_method;
-		mm_nh_shifts = new Array2D<long int>*[this->nlabels];
+		mm_nh_shifts = new Array2D<int32_t>*[this->nlabels];
 		double * tmpdbl = nullptr;
-		unsigned long int n_nhs, idx_largest_mm = -1; // label with the largest minmargin 
-		unsigned long int current_mm = 0;
+		uint32_t n_nhs, idx_largest_mm = -1; // label with the largest minmargin 
+		uint32_t current_mm = 0;
 		this->max_mm_r = 0;
-		for (unsigned long int t = 0; t < this->nlabels; ++t)
+		for (uint32_t t = 0; t < this->nlabels; ++t)
 		{
 			current_mm = 0;
 			if (in_minmargins_radii != nullptr)
@@ -429,11 +504,11 @@ namespace GC{
 				CLNDEL1D(tmpdbl);
 				continue;
 			}
-			Array2D<long int> *lcl_shifts = GirdNeighboursGenerator::getShifts(2, current_mm * 2 + 1, false, true, current_mm, n_nhs, tmpdbl);
+			Array2D<int32_t> *lcl_shifts = GirdNeighboursGenerator::getShifts(2, current_mm * 2 + 1, false, true, current_mm, n_nhs, tmpdbl);
 			CLNDEL1D(tmpdbl);
-			mm_nh_shifts[t] = new Array2D<long int>();
+			mm_nh_shifts[t] = new Array2D<int32_t>();
 			mm_nh_shifts[t]->allocate(3, lcl_shifts->Y);
-			for (long int i = 0; i < lcl_shifts->Y; ++i)
+			for (int32_t i = 0; i < lcl_shifts->Y; ++i)
 			{
 				mm_nh_shifts[t]->data[0 + i * 3] = lcl_shifts->data[0 + i * 2];
 				mm_nh_shifts[t]->data[1 + i * 3] = lcl_shifts->data[1 + i * 2];
@@ -457,12 +532,12 @@ namespace GC{
 		}
 		else if ((mm_method == AlphaPathMoves::MinMarginMethod::BIT_BASED || this->mm_method == AlphaPathMoves::MinMarginMethod::CUDA_BASED) && max_mm_r != 0)
 		{
-			this->max_n_mm_nhs = (unsigned long int)mm_nh_shifts[0]->Y;
+			this->max_n_mm_nhs = (uint32_t)mm_nh_shifts[0]->Y;
 			idx_largest_mm = 0;
-			for (unsigned long int t = 1; t < this->nlabels; ++t)
+			for (uint32_t t = 1; t < this->nlabels; ++t)
 				if (this->max_n_mm_nhs < mm_nh_shifts[t]->Y)
 				{
-					this->max_n_mm_nhs = (unsigned long int) mm_nh_shifts[t]->Y;
+					this->max_n_mm_nhs = (uint32_t) mm_nh_shifts[t]->Y;
 					idx_largest_mm = t;
 				}
 
@@ -499,26 +574,26 @@ namespace GC{
 		called_functions.dataterms = true;
 	}
 	template <class captype, class tcaptype, class flowtype>
-	flowtype AlphaPathMoves<captype, tcaptype, flowtype>::computeEnergyForLabeling(unsigned long int * t_labeling)
+	flowtype AlphaPathMoves<captype, tcaptype, flowtype>::computeEnergyForLabeling(uint32_t * t_labeling)
 	{
 		flowtype t1, t2;
 		return computeEnergyForLabeling(t_labeling, t1, t2);
 	}
 	template <class captype, class tcaptype, class flowtype>
-	flowtype AlphaPathMoves<captype, tcaptype, flowtype>::computeEnergyForLabeling(unsigned long int * t_labeling, flowtype & d_tenergy, flowtype &s_tenergy)
+	flowtype AlphaPathMoves<captype, tcaptype, flowtype>::computeEnergyForLabeling(uint32_t * t_labeling, flowtype & d_tenergy, flowtype &s_tenergy)
 	{
 		flowtype tenergy = 0;
 		d_tenergy = 0, s_tenergy = 0;
-		for (ssize_t tp = 0; tp < this->ndspl; ++tp)
+		for (int64_t tp = 0; tp < this->ndspl; ++tp)
 			d_tenergy += this->dataterms->data[tp + t_labeling[tp] * this->ndspl];
 
-		ssize_t qx, qy, qz;
-		ssize_t p = 0, q, dims01 = dims[0] * dims[1];
-		for (ssize_t pz = 0; pz < this->dims[2]; ++pz)
-			for (ssize_t py = 0; py < this->dims[1]; ++py)
-				for (ssize_t px = 0; px < this->dims[0]; ++px)
+		int64_t qx, qy, qz;
+		int64_t p = 0, q, dims01 = dims[0] * dims[1];
+		for (int64_t pz = 0; pz < this->dims[2]; ++pz)
+			for (int64_t py = 0; py < this->dims[1]; ++py)
+				for (int64_t px = 0; px < this->dims[0]; ++px)
 				{
-					for (unsigned long int shift_id = 0; shift_id < this->sm_nh_shifts->totalsize; shift_id += 3)
+					for (uint32_t shift_id = 0; shift_id < this->sm_nh_shifts->totalsize; shift_id += 3)
 					{
 						qx = px + this->sm_nh_shifts->data[shift_id + 0]; if (qx < 0 || qx >= this->dims[0]) continue;
 						qy = py + this->sm_nh_shifts->data[shift_id + 1]; if (qy < 0 || qy >= this->dims[1]) continue;
@@ -535,7 +610,7 @@ namespace GC{
 	}
 
 	template<class captype, class tcaptype, class flowtype>
-	inline void AlphaPathMoves<captype, tcaptype, flowtype>::setExpansionOrdering(long int str_id, long int exp_id)
+	inline void AlphaPathMoves<captype, tcaptype, flowtype>::setExpansionOrdering(int32_t str_id, int32_t exp_id)
 	{
 		if (str_id < 0 || str_id >= this->nlabels || \
 			exp_id < 0 || exp_id >= this->nlabels)
@@ -551,7 +626,7 @@ namespace GC{
 	}
 
 	template<class captype, class tcaptype, class flowtype>
-	inline void AlphaPathMoves<captype, tcaptype, flowtype>::setExpansionOrdering(long int seed)
+	inline void AlphaPathMoves<captype, tcaptype, flowtype>::setExpansionOrdering(int32_t seed)
 	{
 		if (seed<0)
 		{
@@ -566,17 +641,17 @@ namespace GC{
 	}
 
 	template<class captype, class tcaptype, class flowtype>
-	inline void AlphaPathMoves<captype, tcaptype, flowtype>::setExpansionOrdering(const Array2D<unsigned long int> * label_ordering)
+	inline void AlphaPathMoves<captype, tcaptype, flowtype>::setExpansionOrdering(const Array2D<uint32_t> * label_ordering)
 	{
 		if (label_ordering->totalsize != this->nlabels)
 		{
 			bgn_log << LogType::ERROR << "The label ordering vector should be the same size as the number of labels\n" << end_log;
 			throw("The label ordering vector should be the same size as the number of labels");
 		}
-		for (long int i = 0; i < this->nlabels; ++i)
+		for (int32_t i = 0; i < this->nlabels; ++i)
 		{
 			bool found = false;
-			for (long int j=0 ; j < this->nlabels;++j)
+			for (int32_t j=0 ; j < this->nlabels;++j)
 				if (label_ordering->data[j] == i)
 				{
 					found = true;
@@ -593,26 +668,26 @@ namespace GC{
 		this->expansionOrdering.chain_end_idx = -1;
 		this->expansionOrdering.randomization_seed = 101;
 		this->expansionOrdering.label_ordering.allocate(this->nlabels, 1);
-		std::memcpy(this->expansionOrdering.label_ordering.data, label_ordering->data, sizeof(unsigned long int)*this->nlabels);
+		std::memcpy(this->expansionOrdering.label_ordering.data, label_ordering->data, sizeof(uint32_t)*this->nlabels);
 		expansionOrdering.type = ExpansionOrdering::ExpansionOrderingType::VECTOR;
 	}
 
 	//The function sets the initial labeling (if any)
 	template <class captype, class tcaptype, class flowtype>
-	void AlphaPathMoves<captype, tcaptype, flowtype>::setInitialLabeling(const Array3D<unsigned long int> * in_labeling)
+	void AlphaPathMoves<captype, tcaptype, flowtype>::setInitialLabeling(const Array3D<uint32_t> * in_labeling)
 	{
 		if (called_functions.init_labeling)
 		{
 			bgn_log << LogType::ERROR << "APM: The initial labeling could be called only once before a PathMove run\n" << end_log;
 			throw("APM: The initial labeling could be called only once before a PathMove run");
 		}
-		memcpy(this->labeling, in_labeling->data, sizeof(unsigned long int)*this->ndspl);
+		memcpy(this->labeling, in_labeling->data, sizeof(uint32_t)*this->ndspl);
 		this->called_functions.init_labeling = true;
 	}
 	
 	//The function designates a specific label to be used for initial labeling (in precense of multiple labels with seeds avoid using this function)
 	template <class captype, class tcaptype, class flowtype>
-	void AlphaPathMoves<captype, tcaptype, flowtype>::setInitialLabeling(unsigned long int lbl_id)
+	void AlphaPathMoves<captype, tcaptype, flowtype>::setInitialLabeling(uint32_t lbl_id)
 	{
 		if (called_functions.init_labeling)
 		{
@@ -626,7 +701,7 @@ namespace GC{
 	//This function sets the neighbourhood window size where W=2*r+1 and r is the window radius.
 	//For a pixel p, all the pixels in a WxW window centered around p will be considered its neighbours.
 	template <class captype, class tcaptype, class flowtype>
-	void AlphaPathMoves<captype, tcaptype, flowtype>::setSmoothnessNeighbourhoodWindowSize(unsigned long int in_windowsize)
+	void AlphaPathMoves<captype, tcaptype, flowtype>::setSmoothnessNeighbourhoodWindowSize(uint32_t in_windowsize)
 	{
 		if (called_functions.sm_wsize)
 		{
@@ -640,7 +715,7 @@ namespace GC{
 			throw("Neighbourhood window size must be an odd number\n");
 		}
 		double * nh_shift_mag = nullptr;
-		unsigned long int n_shifts;
+		uint32_t n_shifts;
 		sm_nh_shifts = GirdNeighboursGenerator::getShifts(3, in_windowsize, true, false, -1, n_shifts, nh_shift_mag);
 		CLNDEL1D(nh_shift_mag);
 		called_functions.sm_wsize = true;
@@ -654,8 +729,8 @@ namespace GC{
 	//c- theta : which is a parameter that controls how tight the hedgehog prior is. theta =0 means segmetnation must aligne with the level sets of the distance map.
 	//   when theta = 90 and the seed is a single pixel then hedgeho prior reduces to star-shape prior.
 	template <class captype, class tcaptype, class flowtype>
-	void AlphaPathMoves<captype, tcaptype, flowtype>::setHedgehogAttributes(unsigned long int hhog_windowsize \
-		, const Array3D<long int> * mask \
+	void AlphaPathMoves<captype, tcaptype, flowtype>::setHedgehogAttributes(uint32_t hhog_windowsize \
+		, const Array3D<int32_t> * mask \
 		, double theta)
 	{
 		if (called_functions.hhog_set)
@@ -680,8 +755,8 @@ namespace GC{
 			return;
 		}
 
-		std::vector<long int> hhog_active_list;
-		for (ssize_t p = 0; p < mask->totalsize; p++)
+		std::vector<int32_t> hhog_active_list;
+		for (int64_t p = 0; p < mask->totalsize; p++)
 		{
 			if (mask->data[p] == -1)
 				continue;
@@ -698,14 +773,14 @@ namespace GC{
 		hhoglabel_status = std::vector<bool>(this->nlabels, false);
 
 		double * tmp_shifts_mag = nullptr;
-		unsigned long int tmp_n_shifts;
+		uint32_t tmp_n_shifts;
 		if (dims[2] == 1)
 		{
-			Array2D<long int>   *tmp_shifts;
+			Array2D<int32_t>   *tmp_shifts;
 			tmp_shifts = GirdNeighboursGenerator::getShifts(2, hhog_radius * 2 + 1, false, false, -1, tmp_n_shifts, tmp_shifts_mag);
-			hhog_nh_shifts = new Array2D<long int>();
+			hhog_nh_shifts = new Array2D<int32_t>();
 			hhog_nh_shifts->allocate(3, tmp_shifts->Y);
-			for (unsigned long int s = 0; s < tmp_shifts->Y; s++)
+			for (uint32_t s = 0; s < tmp_shifts->Y; s++)
 			{
 				hhog_nh_shifts->data[s * 3 + 0] = tmp_shifts->data[s * 2 + 0];
 				hhog_nh_shifts->data[s * 3 + 1] = tmp_shifts->data[s * 2 + 1];
@@ -718,11 +793,11 @@ namespace GC{
 		}
 		CLNDEL1D(tmp_shifts_mag);
 		
-		for (unsigned long int i = 0; i < hhog_active_list.size(); ++i)
+		for (uint32_t i = 0; i < hhog_active_list.size(); ++i)
 		{
-			Array3D<float> *  outside3D = DistanceTransform::EDT<long int, float>(mask, hhog_active_list[i], DistanceTransform::OUTSIDE | DistanceTransform::SQUARED);
+			Array3D<float> *  outside3D = DistanceTransform::EDT<int32_t, float>(mask, hhog_active_list[i], DistanceTransform::OUTSIDE | DistanceTransform::SQUARED);
 			NDField<float>* revNormals = SobelFilter<float, float>(outside3D, true, true);
-			hhogconstraints[hhog_active_list[i]] = getHedgehogConstraints <float, long int>(revNormals, hhog_nh_shifts, hhog_radius, theta);
+			hhogconstraints[hhog_active_list[i]] = getHedgehogConstraints <float, int32_t>(revNormals, hhog_nh_shifts, hhog_radius, theta);
 			delete revNormals;
 			delete outside3D;
 			hhoglabel_status[hhog_active_list[i]] = true;
@@ -751,7 +826,7 @@ namespace GC{
 		assert(in_partialTreemetric->X == this->nlabels);
 		assert(in_partialTreemetric->Y == this->nlabels);
 		//populate child2parent 
-		this->child2parent = new long int[this->nlabels];
+		this->child2parent = new int32_t[this->nlabels];
 		fill_n(this->child2parent, this->nlabels, -1);
 		for (auto row_id = 0u; row_id < this->nlabels; ++row_id)
 			for (auto col_id = 0u; col_id < this->nlabels; ++col_id)
@@ -760,19 +835,19 @@ namespace GC{
 
 		//generate all possible paths between tree nodes
 		max_nlayers = 0;
-		paths = new Array3D<long int>();
+		paths = new Array3D<int32_t>();
 		paths->allocate(this->nlabels + 2,this->nlabels, this->nlabels);
 		paths->fill(-1);
-		paths_lengths = new Array2D<long int>();
+		paths_lengths = new Array2D<int32_t>();
 		paths_lengths->allocate(this->nlabels, this->nlabels);
 		paths_lengths->fill(0);
 
-		std::vector<unsigned long int> path;
-		std::queue<unsigned long int> q;
-		unsigned long int path_idx;
-		long int *pred = new long int[this->nlabels], current_node;
+		std::vector<uint32_t> path;
+		std::queue<uint32_t> q;
+		uint32_t path_idx;
+		int32_t *pred = new int32_t[this->nlabels], current_node;
 		bool * flag = new bool[this->nlabels];
-		for (unsigned long int s = 0; s <this->nlabels; s++)
+		for (uint32_t s = 0; s <this->nlabels; s++)
 		{
 			fill_n(pred, this->nlabels, -1);
 			fill_n(flag, this->nlabels, false);
@@ -780,8 +855,8 @@ namespace GC{
 			flag[s] = true;
 			while (!q.empty())
 			{
-				long int v = q.front(); q.pop();
-				for (unsigned long int k = 0; k <this->nlabels; ++k)
+				int32_t v = q.front(); q.pop();
+				for (uint32_t k = 0; k <this->nlabels; ++k)
 					if ((in_partialTreemetric->data[k + v*in_partialTreemetric->constX]>=0 || in_partialTreemetric->data[v + k*in_partialTreemetric->constX]>=0) && flag[k] == false)
 					{
 						flag[k] = true;
@@ -789,7 +864,7 @@ namespace GC{
 						q.push(k);
 					}
 			}
-			for (unsigned long int e = 0; e < this->nlabels; ++e)
+			for (uint32_t e = 0; e < this->nlabels; ++e)
 			{
 				current_node = e;
 				path_idx = 0;
@@ -811,10 +886,10 @@ namespace GC{
 		treemetric = new Array2D<double>();
 		treemetric->allocate(this->nlabels, this->nlabels);
 
-		long int curr, nxt,c,rc,ntail,nhead;
-		for (unsigned long int s = 0; s <this->nlabels; s++)
+		int32_t curr, nxt,c,rc,ntail,nhead;
+		for (uint32_t s = 0; s <this->nlabels; s++)
 		{
-			for (unsigned long int e = 0; e < this->nlabels; ++e)
+			for (uint32_t e = 0; e < this->nlabels; ++e)
 			{
 				curr = 0; nxt = 1;
 				treemetric->data[e + s*treemetric->constX] = 0;
@@ -847,19 +922,19 @@ namespace GC{
 	template <class captype, class tcaptype, class flowtype>
 	void AlphaPathMoves<captype, tcaptype, flowtype>::setupMaxflowSolver(typename MaxflowSolver<captype, tcaptype, flowtype>::SolverName  maxflow_solvername)
 	{
-		long int n_active_hhogs=0;
-		for (long int i = 0; i < this->hhoglabel_status.size(); ++i)
+		int32_t n_active_hhogs=0;
+		for (int32_t i = 0; i < this->hhoglabel_status.size(); ++i)
 			if (this->hhoglabel_status[i])
 				n_active_hhogs++;
 		
 		//find ns in hhog but not in smoothness 
-		long int hhog_exp_smoothnes_nhs = 0;
+		int32_t hhog_exp_smoothnes_nhs = 0;
 		if (this->hhogprior_status)
 		{
-			for (unsigned long int hhog_shift_id = 0; hhog_shift_id < this->hhog_nh_shifts->totalsize; hhog_shift_id += 3)
+			for (uint32_t hhog_shift_id = 0; hhog_shift_id < this->hhog_nh_shifts->totalsize; hhog_shift_id += 3)
 			{
 				bool count = true;
-				for (unsigned long int sm_shift_id = 0; sm_shift_id < this->sm_nh_shifts->totalsize; sm_shift_id += 3)
+				for (uint32_t sm_shift_id = 0; sm_shift_id < this->sm_nh_shifts->totalsize; sm_shift_id += 3)
 					if ((this->hhog_nh_shifts->data[hhog_shift_id + 0] == this->sm_nh_shifts->data[sm_shift_id + 0]) &&
 						(this->hhog_nh_shifts->data[hhog_shift_id + 1] == this->sm_nh_shifts->data[sm_shift_id + 1]) &&
 						(this->hhog_nh_shifts->data[hhog_shift_id + 2] == this->sm_nh_shifts->data[sm_shift_id + 2]))
@@ -872,14 +947,14 @@ namespace GC{
 			}
 		}
 		gc_nds = this->ndspl*this->max_nlayers;
-		size_t max_n_smoothness_edges = this->sm_nh_shifts->Y*gc_nds;
-		size_t max_n_hedgehog_edges = 0;
+		uint64_t max_n_smoothness_edges = this->sm_nh_shifts->Y*gc_nds;
+		uint64_t max_n_hedgehog_edges = 0;
 		if (this->hhogprior_status)
 			max_n_hedgehog_edges = hhog_exp_smoothnes_nhs*this->ndspl*n_active_hhogs;
-		ssize_t n_pariwise_edges = max_n_smoothness_edges+max_n_hedgehog_edges;
+		int64_t n_pariwise_edges = max_n_smoothness_edges+max_n_hedgehog_edges;
 
-		size_t max_n_ishkawa_edges = this->ndspl*(this->max_nlayers - 1);
-		size_t max_n_mm_edges = this->ndspl*this->max_n_mm_nhs*(this->max_nlayers - 1);
+		uint64_t max_n_ishkawa_edges = this->ndspl*(this->max_nlayers - 1);
+		uint64_t max_n_mm_edges = this->ndspl*this->max_n_mm_nhs*(this->max_nlayers - 1);
 		clock_t begin_time;
 		if (!maxflow_solver)
 		{
@@ -910,17 +985,17 @@ namespace GC{
 	{
 		if (!this->hhogprior_status) return;
 
-		ssize_t p = 0, q, dims01 = dims[0] * dims[1], qidx, pidx;
-		ssize_t hhog_2r1 = (2 * this->hhog_radius + 1), hhog_2r1_sq = hhog_2r1*hhog_2r1;
-		ssize_t countZ = dims[2]>1 ? 1 : 0;
-		ssize_t conv_idx = getConvIdx(this->hhog_radius, hhog_2r1, countZ);
+		int64_t p = 0, q, dims01 = dims[0] * dims[1], qidx, pidx;
+		int64_t hhog_2r1 = (2 * this->hhog_radius + 1), hhog_2r1_sq = hhog_2r1*hhog_2r1;
+		int64_t countZ = dims[2]>1 ? 1 : 0;
+		int64_t conv_idx = getConvIdx(this->hhog_radius, hhog_2r1, countZ);
 		flowtype wpq, wqp;
-		ssize_t qx, qy, qz; //must remain unsigned to check for boundries
-		for (ssize_t pz = 0; pz < this->dims[2]; ++pz)
-			for (ssize_t py = 0; py < this->dims[1]; ++py)
-				for (ssize_t px = 0; px < this->dims[0]; ++px)
+		int64_t qx, qy, qz; //must remain unsigned to check for boundries
+		for (int64_t pz = 0; pz < this->dims[2]; ++pz)
+			for (int64_t py = 0; py < this->dims[1]; ++py)
+				for (int64_t px = 0; px < this->dims[0]; ++px)
 				{
-					for (unsigned long int shift_id = 0; shift_id < this->hhog_nh_shifts->totalsize; shift_id += 3)
+					for (uint32_t shift_id = 0; shift_id < this->hhog_nh_shifts->totalsize; shift_id += 3)
 					{
 						qx = px + this->hhog_nh_shifts->data[shift_id + 0]; if (qx < 0 || qx >= this->dims[0]) continue;
 						qy = py + this->hhog_nh_shifts->data[shift_id + 1]; if (qy < 0 || qy >= this->dims[1]) continue;
@@ -929,7 +1004,7 @@ namespace GC{
 						qidx=getqidx(this->hhog_nh_shifts->data[shift_id + 0], this->hhog_nh_shifts->data[shift_id + 1], this->hhog_nh_shifts->data[shift_id + 2], this->hhog_radius, hhog_2r1, hhog_2r1_sq, countZ);
 						pidx = conv_idx - qidx;
 
-						for (unsigned long int layer_id = 0; layer_id < this->max_nlayers; layer_id++)
+						for (uint32_t layer_id = 0; layer_id < this->max_nlayers; layer_id++)
 						{
 							wpq = 0;
 							wqp = 0;
@@ -951,26 +1026,26 @@ namespace GC{
 				}
 	}
 	template <class captype, class tcaptype, class flowtype>
-	void AlphaPathMoves<captype, tcaptype, flowtype>::setPairwiseSmoothnessGCArcs(Array3D<char> * pm_hhogconstraints, flowtype *exp_dataterms, captype  *lcl_pairwise, ssize_t * nlinks_ids, 
-		tcaptype *lcl_unary, ssize_t * tlinks_ids, unsigned long int explbl, unsigned long int current_cycle)
+	void AlphaPathMoves<captype, tcaptype, flowtype>::setPairwiseSmoothnessGCArcs(Array3D<char> * pm_hhogconstraints, flowtype *exp_dataterms, captype  *lcl_pairwise, int64_t * nlinks_ids, 
+		tcaptype *lcl_unary, int64_t * tlinks_ids, uint32_t explbl, uint32_t current_cycle)
 	{
-		ssize_t pcounter, ucounter, layer_id;
+		int64_t pcounter, ucounter, layer_id;
 
 		//Compute Smoohtness Edges [passed unit testing]
-		ssize_t p = 0, q, dims01 = dims[0] * dims[1], qidx, pidx;
-		ssize_t hhog_2r1 = (2 * this->hhog_radius + 1), hhog_2r1_sq = hhog_2r1*hhog_2r1;
-		ssize_t countZ = dims[2]>1 ? 1 : 0;
-		ssize_t conv_idx = getConvIdx(this->hhog_radius, hhog_2r1, countZ);
-		long int * P, *Q;
+		int64_t p = 0, q, dims01 = dims[0] * dims[1], qidx, pidx;
+		int64_t hhog_2r1 = (2 * this->hhog_radius + 1), hhog_2r1_sq = hhog_2r1*hhog_2r1;
+		int64_t countZ = dims[2]>1 ? 1 : 0;
+		int64_t conv_idx = getConvIdx(this->hhog_radius, hhog_2r1, countZ);
+		int32_t * P, *Q;
 		
 
 		double wpq, wqp;
-		ssize_t qx, qy, qz; //must remain unsigned to check for boundries
-		for (ssize_t pz = 0; pz < this->dims[2]; ++pz)
-			for (ssize_t py = 0; py < this->dims[1]; ++py)
-				for (ssize_t px = 0; px < this->dims[0]; ++px)
+		int64_t qx, qy, qz; //must remain unsigned to check for boundries
+		for (int64_t pz = 0; pz < this->dims[2]; ++pz)
+			for (int64_t py = 0; py < this->dims[1]; ++py)
+				for (int64_t px = 0; px < this->dims[0]; ++px)
 				{
-					for (unsigned long int shift_id = 0; shift_id < this->sm_nh_shifts->totalsize; shift_id += 3)
+					for (uint32_t shift_id = 0; shift_id < this->sm_nh_shifts->totalsize; shift_id += 3)
 					{
 						qx = px + this->sm_nh_shifts->data[shift_id + 0]; if (qx < 0 || qx >= this->dims[0]) continue;
 						qy = py + this->sm_nh_shifts->data[shift_id + 1]; if (qy < 0 || qy >= this->dims[1]) continue;
@@ -982,7 +1057,7 @@ namespace GC{
 						Q = this->paths->data + this->labeling[q] * paths->constX + explbl*paths->constXY;
 
 						//set the pariwise edges directly into GC and accumulate the smoothness2unary potentials
-						for (unsigned long int tk = 0, path_idx=0; tk < pcounter * 2; tk += 2, path_idx++)
+						for (uint32_t tk = 0, path_idx=0; tk < pcounter * 2; tk += 2, path_idx++)
 						{
 							//we know if where are visitng P[path_idx] and Q[path_idx] in this loop then they are equal other wise a pair-wise edge would not have been created
 							if (!this->hhogprior_status)
@@ -1010,7 +1085,7 @@ namespace GC{
 						}
 
 						//add auxillary smoothness2unary terms to the the dataterms 
-						for (unsigned long int i = 0; i < ucounter; i++)
+						for (uint32_t i = 0; i < ucounter; i++)
 							exp_dataterms[tlinks_ids[i]] += lcl_unary[i];
 
 					}
@@ -1018,7 +1093,7 @@ namespace GC{
 				}
 	}
 	template <class captype, class tcaptype, class flowtype>
-	void AlphaPathMoves<captype, tcaptype, flowtype>::fillPathMoveHedgehogConstraints(Array3D<char> * pm_hhogconstraints, unsigned long int explbl, unsigned long int current_cycle)
+	void AlphaPathMoves<captype, tcaptype, flowtype>::fillPathMoveHedgehogConstraints(Array3D<char> * pm_hhogconstraints, uint32_t explbl, uint32_t current_cycle)
 	{
 		if (!this->hhogprior_status)
 			return;
@@ -1026,19 +1101,19 @@ namespace GC{
 		
 		//initial implementation of populateGCHedgehogConstraints is going to be C++ (initially)
 		//Compute Smoohtness Edges [passed unit testing]
-		ssize_t p = 0, q, dims01 = dims[0] * dims[1], qidx, pidx;
-		ssize_t hhog_2r1 = (2 * this->hhog_radius + 1), hhog_2r1_sq = hhog_2r1*hhog_2r1;
-		ssize_t countZ = dims[2]>1 ? 1 : 0;
-		ssize_t conv_idx = 2 * this->hhog_radius + 2 * this->hhog_radius * hhog_2r1 + 2 * this->hhog_radius* pow2(hhog_2r1) * countZ;
-		long int * P, *Q;
-		long int A, B, X, Y;
-		ssize_t wpq, wqp;
-		ssize_t qx, qy, qz; //must remain unsigned to check for boundries
-		for (ssize_t pz = 0; pz < this->dims[2]; ++pz)
-			for (ssize_t py = 0; py < this->dims[1]; ++py)
-				for (ssize_t px = 0; px < this->dims[0]; ++px)
+		int64_t p = 0, q, dims01 = dims[0] * dims[1], qidx, pidx;
+		int64_t hhog_2r1 = (2 * this->hhog_radius + 1), hhog_2r1_sq = hhog_2r1*hhog_2r1;
+		int64_t countZ = dims[2]>1 ? 1 : 0;
+		int64_t conv_idx = 2 * this->hhog_radius + 2 * this->hhog_radius * hhog_2r1 + 2 * this->hhog_radius* pow2(hhog_2r1) * countZ;
+		int32_t * P, *Q;
+		int32_t A, B, X, Y;
+		int64_t wpq, wqp;
+		int64_t qx, qy, qz; //must remain unsigned to check for boundries
+		for (int64_t pz = 0; pz < this->dims[2]; ++pz)
+			for (int64_t py = 0; py < this->dims[1]; ++py)
+				for (int64_t px = 0; px < this->dims[0]; ++px)
 				{
-					for (unsigned long int shift_id = 0; shift_id < this->hhog_nh_shifts->totalsize; shift_id += 3)
+					for (uint32_t shift_id = 0; shift_id < this->hhog_nh_shifts->totalsize; shift_id += 3)
 					{
 						qx = px + this->hhog_nh_shifts->data[shift_id + 0]; if (qx < 0 || qx >= this->dims[0]) continue;
 						qy = py + this->hhog_nh_shifts->data[shift_id + 1]; if (qy < 0 || qy >= this->dims[1]) continue;
@@ -1048,7 +1123,7 @@ namespace GC{
 						Q = this->paths->data + this->labeling[q] * paths->constX + explbl*paths->constXY;
 						qidx = getqidx(this->hhog_nh_shifts->data[shift_id + 0], this->hhog_nh_shifts->data[shift_id + 1], this->hhog_nh_shifts->data[shift_id + 2], this->hhog_radius, hhog_2r1, hhog_2r1_sq, countZ);
 						pidx = conv_idx - qidx;
-						for (unsigned long int layer_id = 0; layer_id<= this->max_nlayers; ++layer_id)
+						for (uint32_t layer_id = 0; layer_id<= this->max_nlayers; ++layer_id)
 						{
 							wpq = 0;
 							wqp = 0;
@@ -1132,14 +1207,14 @@ namespace GC{
 	{
 		BasicGraph<captype, tcaptype>::t_links_struct tlinks = graph->get_tlinks();
 		BasicGraph<captype, tcaptype>::n_links_struct nlinks = graph->get_nlinks();
-		size_t n_nodes = graph->getNumberOfNodes();
-		ssize_t dim0 = this->dims[0];
-		ssize_t dim01 = this->dims[0] * this->dims[1];
-		long int s = 0, t = 1;
-		long int p_layer_id = 0, q_layer_id = 0;
+		uint64_t n_nodes = graph->getNumberOfNodes();
+		int64_t dim0 = this->dims[0];
+		int64_t dim01 = this->dims[0] * this->dims[1];
+		int32_t s = 0, t = 1;
+		int32_t p_layer_id = 0, q_layer_id = 0;
 		bool infcost_severed = false;
-		ssize_t p, q, px, py, pz, qx, qy, qz;
-		for (size_t link_id = 0; link_id < tlinks.n_tlinks; ++link_id)
+		int64_t p, q, px, py, pz, qx, qy, qz;
+		for (uint64_t link_id = 0; link_id < tlinks.n_tlinks; ++link_id)
 		{
 			p = tlinks.node_ids[link_id] % this->ndspl;
 			p_layer_id = (tlinks.node_ids[link_id]-p) / this->ndspl;
@@ -1172,7 +1247,7 @@ namespace GC{
 				bgn_log << LogType::WARNING << "ARM: Infinity cost s-link was severedn\n" << end_log;
 			}
 		}
-		for (size_t offset = 0; offset < (nlinks.n_nlinks * 2); offset += 2)
+		for (uint64_t offset = 0; offset < (nlinks.n_nlinks * 2); offset += 2)
 		{
 
 			p = nlinks.edge_nodes[offset + 0] % this->ndspl;
@@ -1223,15 +1298,15 @@ namespace GC{
 	//a-  the maxflow solver to be used (IBFS is the fastest so far)
 	//b-  (a return value) final energy which is the enegy at convergence
 template <class captype, class tcaptype, class flowtype>
-Array3D<unsigned long int> * AlphaPathMoves<captype, tcaptype, flowtype>::runPathMoves(typename MaxflowSolver<captype, tcaptype, flowtype>::SolverName maxflow_solvername, flowtype & final_energy)
+Array3D<uint32_t> * AlphaPathMoves<captype, tcaptype, flowtype>::runPathMoves(typename MaxflowSolver<captype, tcaptype, flowtype>::SolverName maxflow_solvername, flowtype & final_energy)
 {
 	struct RNG {
-		long int operator() (long int n) {
+		int32_t operator() (int32_t n) {
 			return std::rand() / (1.0 + RAND_MAX) * n;
 		}
 	};
 
-	bgn_log << LogType::INFO_LEVEL1 << "ARM: Validating status\n" << end_log;
+	bgn_log << LogType::INFO_LEVEL1 << "ARM: Validating Status\n" << end_log;
 	if (!called_functions.dataterms)
 	{
 		bgn_log << LogType::ERROR << "ARM: The dataterms must be set (or reset) before running PathMoves\n" << end_log;
@@ -1265,22 +1340,22 @@ Array3D<unsigned long int> * AlphaPathMoves<captype, tcaptype, flowtype>::runPat
 	
 	char * solver_labeling = new char[this->gc_nds];
 	flowtype *exp_dataterms = new flowtype[this->max_nlayers*this->ndspl];
-	ssize_t * nlinks_ids = new ssize_t[this->max_nlayers * 3 * 2];//p q 
+	int64_t * nlinks_ids = new int64_t[this->max_nlayers * 3 * 2];//p q 
 	captype  *lcl_pairwise = new captype[this->max_nlayers * 3 * 2];  // wpq wqp		
-	ssize_t * tlinks_ids = new ssize_t[this->max_nlayers * 3];//p 
+	int64_t * tlinks_ids = new int64_t[this->max_nlayers * 3];//p 
 	tcaptype *lcl_unary = new tcaptype[this->max_nlayers * 3];  //wsp
 
 	flowtype tmp_energy = 0, const_term = 0;;
-	unsigned long int * tmp_labeling = new unsigned long int[this->ndspl];
+	uint32_t * tmp_labeling = new uint32_t[this->ndspl];
 
 
-	long int *P, Pi, expansion_id = 1, cycleid = 1, best_expansionlabel;
-	ssize_t dims01 = dims[0] * dims[1];
+	int32_t *P, Pi, expansion_id = 1, cycleid = 1, best_expansionlabel;
+	int64_t dims01 = dims[0] * dims[1];
 	
 	bool change_occured;
 	bool * dirty_list = new bool[this->nlabels];
 	std::fill_n(dirty_list, this->nlabels, true);
-	auto IsAnyTrue_Lambda = [](bool *state_array, unsigned long int & size) ->bool { for (unsigned long int i = 0; i < size; ++i)  if (state_array[i]) return true;  return false; };
+	auto IsAnyTrue_Lambda = [](bool *state_array, uint32_t & size) ->bool { for (uint32_t i = 0; i < size; ++i)  if (state_array[i]) return true;  return false; };
 	Array3D<char> * pm_hhogconstraints = nullptr;
 	if (this->hhogprior_status)
 	{
@@ -1292,7 +1367,7 @@ Array3D<unsigned long int> * AlphaPathMoves<captype, tcaptype, flowtype>::runPat
 	}
 
 	flowtype min_value = this->LRG_PENALTY*1000;
-	for (ssize_t p = 0; p < this->dataterms->totalsize; ++p)
+	for (int64_t p = 0; p < this->dataterms->totalsize; ++p)
 		if (min_value > this->dataterms->data[p])
 			min_value = this->dataterms->data[p];
 
@@ -1300,30 +1375,30 @@ Array3D<unsigned long int> * AlphaPathMoves<captype, tcaptype, flowtype>::runPat
 	if (min_value < 0)
 	{
 		offset = min_value * this->dataterms->X;
-		for (ssize_t p = 0; p < this->dataterms->totalsize; ++p)
+		for (int64_t p = 0; p < this->dataterms->totalsize; ++p)
 			this->dataterms->data[p] -= min_value;
 	}
 	flowtype energy = this->computeEnergyForLabeling(labeling) + offset;
 	final_energy = energy;
 
 	//expanding on the leafs only is not as good as expanding on all the labels
-	std::vector<unsigned long int> label_ordering;
+	std::vector<uint32_t> label_ordering;
 	if (expansionOrdering.type == ExpansionOrdering::ExpansionOrderingType::SEED)
 	{
 		std::srand(expansionOrdering.randomization_seed);
-		for (unsigned long int i = 0; i < this->nlabels; ++i)
+		for (uint32_t i = 0; i < this->nlabels; ++i)
 			label_ordering.push_back(i);
 		std::random_shuffle(label_ordering.begin(), label_ordering.end(), RNG());
 	}
 	else if  (expansionOrdering.type == ExpansionOrdering::ExpansionOrderingType::CHAIN)
 	{
-		this->setInitialLabeling((unsigned long int)expansionOrdering.chain_str_idx);
+		this->setInitialLabeling((uint32_t)expansionOrdering.chain_str_idx);
 		label_ordering.clear();
 		label_ordering.push_back(expansionOrdering.chain_end_idx);
 	}
 	else if (expansionOrdering.type == ExpansionOrdering::ExpansionOrderingType::VECTOR)
 	{
-		for (unsigned long int i = 0; i < expansionOrdering.label_ordering.totalsize; ++i)
+		for (uint32_t i = 0; i < expansionOrdering.label_ordering.totalsize; ++i)
 			label_ordering.push_back(expansionOrdering.label_ordering.data[i]);
 	}
 	else
@@ -1338,16 +1413,16 @@ Array3D<unsigned long int> * AlphaPathMoves<captype, tcaptype, flowtype>::runPat
 		
 		change_occured = false;
 		bgn_log << LogType::INFO_LEVEL1 << "APM: Cycle #" << cycleid << " current energy = " << energy << "\n" << end_log;
-		for (unsigned long int explidx = 0; explidx < label_ordering.size(); ++explidx)//this->nlabels
+		for (uint32_t explidx = 0; explidx < label_ordering.size(); ++explidx)//this->nlabels
 		{
 			if (!IsAnyTrue_Lambda(dirty_list, this->nlabels)) break;
-			bgn_log << LogType::INFO_LEVEL1 << "APM: \tExpansion #" << (long long)expansion_id << " on L" << label_ordering[explidx] << "\n" << end_log;
+			bgn_log << LogType::INFO_LEVEL1 << "APM: \tExpansion #" << (int64_t)expansion_id << " on L" << label_ordering[explidx] << "\n" << end_log;
 
 			//Compute Dataterms via telescopic sum
 			const_term = 0; // actual energy = maxflow+ const_dataterm (s->t edges remaining from the telescopic sum of dataterms)
 			std::fill_n(exp_dataterms, this->gc_nds, 0);
 			//Set dataterms and ishakaw backward inf edges
-			for (ssize_t p = 0; p < this->ndspl; ++p) 
+			for (int64_t p = 0; p < this->ndspl; ++p) 
 			{
 				P = this->paths->data + labeling[p] * paths->constX + label_ordering[explidx] * paths->constXY;
 				if (P[1] == -1) // 
@@ -1448,12 +1523,12 @@ Array3D<unsigned long int> * AlphaPathMoves<captype, tcaptype, flowtype>::runPat
 	//Do not return to the calling fuction before making sure that all files were written
 	// otherwise the calling function might exit, thus terminating the current process 
 	// and kill all the writing threads before they properly finish.
-	for (unsigned long int t = 0; t < labeling_writingthreads.size(); ++t) 
+	for (uint32_t t = 0; t < labeling_writingthreads.size(); ++t) 
 		labeling_writingthreads[t].join(); 
 
-	Array3D<unsigned long int> *labelling_array = new Array3D<unsigned long int>();
+	Array3D<uint32_t> *labelling_array = new Array3D<uint32_t>();
 	labelling_array->allocate(dims[0], dims[1], dims[2]);
-	memcpy(labelling_array->data, labeling, sizeof(unsigned long int)*this->ndspl);
+	memcpy(labelling_array->data, labeling, sizeof(uint32_t)*this->ndspl);
 
 	called_functions.dataterms = false;
 	called_functions.init_labeling = false;
@@ -1466,14 +1541,14 @@ void AlphaPathMoves<captype, tcaptype, flowtype>::getRuntime(double & const_rt, 
 	this->maxflow_solver->getRuntimes(const_rt, maxflow_rt, total_rt);
 }
 template <class captype, class tcaptype, class flowtype>
-void AlphaPathMoves<captype, tcaptype, flowtype>::setMinMarginGCArcs(unsigned long int expl, unsigned long int expansion_id)
+void AlphaPathMoves<captype, tcaptype, flowtype>::setMinMarginGCArcs(uint32_t expl, uint32_t expansion_id)
 {
 	if (max_mm_r == 0) return ;
 	//Set the inclusion min margin constraints
-	ssize_t idx = 0, gc_p, gc_q, pConstX;// , p;
-	ssize_t q, qx, qy, qz;
+	int64_t idx = 0, gc_p, gc_q, pConstX;// , p;
+	int64_t q, qx, qy, qz;
 	
-	for (unsigned long int layer_id = 0; layer_id < (this->max_nlayers - 1); ++layer_id) 
+	for (uint32_t layer_id = 0; layer_id < (this->max_nlayers - 1); ++layer_id) 
 	{
 		/* p [ q1 q2 -1 q3 -1 -1 ... q4 ..-1] fast but uses a lot of memory*/
 		if (this->mm_method == MinMarginMethod::IDX_BASED)
@@ -1481,7 +1556,7 @@ void AlphaPathMoves<captype, tcaptype, flowtype>::setMinMarginGCArcs(unsigned lo
 			std::fill_n(minmarginIDX->edges.data, this->ndspl*this->max_n_mm_nhs, -1);
 			this->fillMarginConstraints_IDX_BASED(layer_id, expl);
 
-			for (ssize_t p = 0; p < this->ndspl; ++p)
+			for (int64_t p = 0; p < this->ndspl; ++p)
 			{
 				pConstX = p*this->minmarginIDX->edges.constX;
 				for (idx = 0; idx < this->max_n_mm_nhs; ++idx)
@@ -1500,7 +1575,7 @@ void AlphaPathMoves<captype, tcaptype, flowtype>::setMinMarginGCArcs(unsigned lo
 		else if (this->mm_method == MinMarginMethod::BIT_BASED || this->mm_method == MinMarginMethod::CUDA_BASED) {
 			/*uses less memory but slow, need to speed it up via one-time computed look-up tables*/
 			//* p [shift vectors bit enconding] memeroy effiecent but slow*/
-			ssize_t dims01 = dims[0] * dims[1];
+			int64_t dims01 = dims[0] * dims[1];
 			
 			if (this->mm_method == MinMarginMethod::BIT_BASED)
 				this->fillMarginConstraints_BIT_BASED(layer_id, expl); //the following bank reading is distructive (i.e. no need to memset before the next call) 
@@ -1508,11 +1583,11 @@ void AlphaPathMoves<captype, tcaptype, flowtype>::setMinMarginGCArcs(unsigned lo
 				marginEdgesCuda->runKernel(layer_id, expl,this->labeling);
 			
 
-			const ssize_t one = 1;
-			ssize_t bitid, g_bank_id = 0;
-			for (ssize_t pz = 0, p = 0; pz < this->dims[2]; ++pz)
-			for (ssize_t py = 0; py < this->dims[1]; ++py)
-			for (ssize_t px = 0; px < this->dims[0]; ++px, p++)
+			const int64_t one = 1;
+			int64_t bitid, g_bank_id = 0;
+			for (int64_t pz = 0, p = 0; pz < this->dims[2]; ++pz)
+			for (int64_t py = 0; py < this->dims[1]; ++py)
+			for (int64_t px = 0; px < this->dims[0]; ++px, p++)
 			{
 				bitid = 0;
 				for (auto bank_id = 0; bank_id < this->minmarginBIT->n_banks; ++bank_id, ++g_bank_id)
@@ -1545,10 +1620,10 @@ void AlphaPathMoves<captype, tcaptype, flowtype>::setMinMarginGCArcs(unsigned lo
 }
 
 template <class captype, class tcaptype, class flowtype>
-void AlphaPathMoves<captype, tcaptype, flowtype>::convertGCBinLabeling2MultiLabeling(unsigned long int * trgt_labeling, unsigned long int exp_label, char * solver_labeling)
+void AlphaPathMoves<captype, tcaptype, flowtype>::convertGCBinLabeling2MultiLabeling(uint32_t * trgt_labeling, uint32_t exp_label, char * solver_labeling)
 {
-	long int * P, Pi;
-	for (ssize_t p = 0; p < this->ndspl; ++p)
+	int32_t * P, Pi;
+	for (int64_t p = 0; p < this->ndspl; ++p)
 	{
 		P = this->paths->data + labeling[p] * paths->constX + exp_label*paths->constXY;
 		trgt_labeling[p] = P[0];
@@ -1564,37 +1639,37 @@ void AlphaPathMoves<captype, tcaptype, flowtype>::convertGCBinLabeling2MultiLabe
 };
 
 template <class captype, class tcaptype, class flowtype>
-void AlphaPathMoves<captype, tcaptype, flowtype>::saveLabelingToFile(unsigned long int * in_labeling, std::string filename)
+void AlphaPathMoves<captype, tcaptype, flowtype>::saveLabelingToFile(uint32_t * in_labeling, std::string filename)
 {
-	unsigned n_dims = 3;
+	int64_t n_dims = 3;
 	if (this->dims[2] == 1)
 		n_dims = 2;
-	ArrayInOut<unsigned long int> *tmp_array = new ArrayInOut<unsigned long int>(this->dims, n_dims);
-	unsigned long int * tmp_labeling = tmp_array->getArrayCopyShallow();
-	memcpy(tmp_labeling, in_labeling, sizeof(unsigned long int)*this->ndspl);
+	ArrayInOut<uint32_t> *tmp_array = new ArrayInOut<uint32_t>(this->dims, n_dims);
+	uint32_t * tmp_labeling = tmp_array->getArrayCopyShallow();
+	memcpy(tmp_labeling, in_labeling, sizeof(uint32_t)*this->ndspl);
 	tmp_array->save(filename);
 	delete tmp_array;
 };
 template <class captype, class tcaptype, class flowtype>
-void AlphaPathMoves<captype, tcaptype, flowtype>::fillMarginConstraints_BIT_BASED(unsigned long int in_Pi, unsigned long int explbl)
+void AlphaPathMoves<captype, tcaptype, flowtype>::fillMarginConstraints_BIT_BASED(uint32_t in_Pi, uint32_t explbl)
 {
-	ssize_t dims01 = dims[0] * dims[1], idx, p = 0, q, qx, qy, qz;
-	long int *P, *Q;
-	unsigned long int Pi;
+	int64_t dims01 = dims[0] * dims[1], idx, p = 0, q, qx, qy, qz;
+	int32_t *P, *Q;
+	uint32_t Pi;
 	//yoffset and zoffset are used the map a shift vector to a unique idx
-	ssize_t yoffset = this->max_mm_r * 2 + 1;
-	ssize_t zoffset = yoffset*yoffset;
+	int64_t yoffset = this->max_mm_r * 2 + 1;
+	int64_t zoffset = yoffset*yoffset;
 	if (dims[2] == 1)
 		zoffset = 0;
-	for (ssize_t pz = 0; pz < this->dims[2]; ++pz)
-	for (ssize_t py = 0; py < this->dims[1]; ++py)
-	for (ssize_t px = 0; px < this->dims[0]; ++px, p++)
+	for (int64_t pz = 0; pz < this->dims[2]; ++pz)
+	for (int64_t py = 0; py < this->dims[1]; ++py)
+	for (int64_t px = 0; px < this->dims[0]; ++px, p++)
 	{
 		P = this->paths->data + labeling[p] * paths->constX + explbl*paths->constXY;
 		Pi = in_Pi;
 		if (P[Pi] != -1 && Pi + 1 < this->max_nlayers && P[Pi + 1] != -1) //change // node gc_p is active  (p.s. Pi+1<this->max_nlayers is redundant because Pi is never the final layer)
 		{//bottom-2-top  
-			for (unsigned long int shift_id = 0; shift_id < this->mm_nh_shifts[P[Pi]]->totalsize; shift_id += 3)
+			for (uint32_t shift_id = 0; shift_id < this->mm_nh_shifts[P[Pi]]->totalsize; shift_id += 3)
 			{
 				qx = px + this->mm_nh_shifts[P[Pi]]->data[shift_id + 0]; if (qx < 0 || qx >= this->dims[0]) continue;
 				qy = py + this->mm_nh_shifts[P[Pi]]->data[shift_id + 1]; if (qy < 0 || qy >= this->dims[1]) continue;
@@ -1614,7 +1689,7 @@ void AlphaPathMoves<captype, tcaptype, flowtype>::fillMarginConstraints_BIT_BASE
 		if (Pi<this->max_nlayers && P[Pi] != -1 && //change
 			Pi - 1>0 && Pi - 1 < this->max_nlayers && P[Pi - 1] != -1) //node gc_p is active 
 		{//top-2-bottom 
-			for (unsigned long int shift_id = 0; shift_id < this->mm_nh_shifts[P[Pi]]->totalsize; shift_id += 3)
+			for (uint32_t shift_id = 0; shift_id < this->mm_nh_shifts[P[Pi]]->totalsize; shift_id += 3)
 			{
 				qx = px + this->mm_nh_shifts[P[Pi]]->data[shift_id + 0]; if (qx < 0 || qx >= this->dims[0]) continue;
 				qy = py + this->mm_nh_shifts[P[Pi]]->data[shift_id + 1]; if (qy < 0 || qy >= this->dims[1]) continue;
@@ -1632,26 +1707,26 @@ void AlphaPathMoves<captype, tcaptype, flowtype>::fillMarginConstraints_BIT_BASE
 	}
 };
 template <class captype, class tcaptype, class flowtype>
-void AlphaPathMoves<captype, tcaptype, flowtype>::fillMarginConstraints_IDX_BASED(unsigned long int in_Li, unsigned long int explbl)
+void AlphaPathMoves<captype, tcaptype, flowtype>::fillMarginConstraints_IDX_BASED(uint32_t in_Li, uint32_t explbl)
 {
-	ssize_t dims01 = dims[0] * dims[1], idx, p = 0, q;
-	long int *P, *Q;
-	unsigned long int Li;
-	ssize_t qx, qy, qz;
+	int64_t dims01 = dims[0] * dims[1], idx, p = 0, q;
+	int32_t *P, *Q;
+	uint32_t Li;
+	int64_t qx, qy, qz;
 	//yoffset and zoffset are used the map a shift vector to a unique idx
-	ssize_t yoffset = this->max_mm_r * 2 + 1;
-	ssize_t zoffset = yoffset*yoffset;
+	int64_t yoffset = this->max_mm_r * 2 + 1;
+	int64_t zoffset = yoffset*yoffset;
 	if (dims[2] == 1)
 		zoffset = 0;
-	for (ssize_t pz = 0; pz < this->dims[2]; ++pz)
-	for (ssize_t py = 0; py < this->dims[1]; ++py)
-	for (ssize_t px = 0; px < this->dims[0]; ++px)
+	for (int64_t pz = 0; pz < this->dims[2]; ++pz)
+	for (int64_t py = 0; py < this->dims[1]; ++py)
+	for (int64_t px = 0; px < this->dims[0]; ++px)
 	{
 		Li = in_Li;
 		P = this->paths->data + labeling[p] * paths->constX + explbl*paths->constXY;
 		if (P[Li] != -1 && Li + 1 < this->max_nlayers && P[Li + 1] != -1 && this->minmarginIDX->InSubTree->data[explbl + P[Li] * this->minmarginIDX->InSubTree->constX])
 		{
-			for (unsigned long int shift_id = 0; shift_id < this->mm_nh_shifts[P[Li]]->totalsize; shift_id += 3)
+			for (uint32_t shift_id = 0; shift_id < this->mm_nh_shifts[P[Li]]->totalsize; shift_id += 3)
 			{
 				qx = px + this->mm_nh_shifts[P[Li]]->data[shift_id + 0]; if (qx < 0 || qx >= this->dims[0]) continue;
 				qy = py + this->mm_nh_shifts[P[Li]]->data[shift_id + 1]; if (qy < 0 || qy >= this->dims[1]) continue;
@@ -1670,7 +1745,7 @@ void AlphaPathMoves<captype, tcaptype, flowtype>::fillMarginConstraints_IDX_BASE
 		Li += 2;
 		if (Li < this->max_nlayers && P[Li] != -1 && Li - 1> 0 && P[Li - 1] != -1 && this->minmarginIDX->InSubTree->data[labeling[p] + P[Li] * this->minmarginIDX->InSubTree->constX]) //node gc_p is active 
 		{
-			for (unsigned long int shift_id = 0; shift_id < this->mm_nh_shifts[P[Li]]->totalsize; shift_id += 3)
+			for (uint32_t shift_id = 0; shift_id < this->mm_nh_shifts[P[Li]]->totalsize; shift_id += 3)
 			{
 				qx = px + this->mm_nh_shifts[P[Li]]->data[shift_id + 0]; if (qx < 0 || qx >= this->dims[0]) continue;
 				qy = py + this->mm_nh_shifts[P[Li]]->data[shift_id + 1]; if (qy < 0 || qy >= this->dims[1]) continue;
@@ -1690,21 +1765,24 @@ void AlphaPathMoves<captype, tcaptype, flowtype>::fillMarginConstraints_IDX_BASE
 	}
 	
 };
+
 template <class captype, class tcaptype, class flowtype>
-void AlphaPathMoves<captype, tcaptype, flowtype>::fillPairewisePathSmoothnessArcs(ssize_t p, ssize_t q, unsigned long int lp, unsigned long int lq, unsigned  long int explbl, captype * pairwise, ssize_t * nlinks_ids, ssize_t & pcounter, tcaptype * unary, ssize_t* tlinks_ids, ssize_t &ucounter)
+void AlphaPathMoves<captype, tcaptype, flowtype>::fillPairewisePathSmoothnessArcs(int64_t p, int64_t q, uint32_t lp, uint32_t lq, uint32_t explbl, \
+	captype * pairwise, int64_t * nlinks_ids,int64_t & pcounter, tcaptype * unary, \
+	int64_t* tlinks_ids, int64_t &ucounter)
 {   
-	// ssize_t nlinks_ids [max_nlayers*3*2]  each row is p,q
+	// int64_t nlinks_ids [max_nlayers*3*2]  each row is p,q
 	// captype pairwise   [max_nlayers*3*2]  each row is wpq,wqp
-	// ssize_t tlinks_ids [max_nlayers*3]    each element is p         
+	// int64_t tlinks_ids [max_nlayers*3]    each element is p         
 	// tcaptype unary     [max_nlayers*3]    each element is weight from s to p
 
-	long int * P = this->paths->data + lp*paths->constX + explbl*paths->constXY;
-	long int * Q = this->paths->data + lq*paths->constX + explbl*paths->constXY;
-	long int pi = 0, qi = 0, Pl1, Pl2, Ql1, Ql2;
+	int32_t * P = this->paths->data + lp*paths->constX + explbl*paths->constXY;
+	int32_t * Q = this->paths->data + lq*paths->constX + explbl*paths->constXY;
+	int32_t pi = 0, qi = 0, Pl1, Pl2, Ql1, Ql2;
 	double lambda_wpq;
 	pcounter = 0;
 	ucounter = 0;
-	for (unsigned long int plength = 0; plength < (this->max_nlayers - 1); ++plength) 
+	for (uint32_t plength = 0; plength < (this->max_nlayers - 1); ++plength) 
 	{
 		if (P[pi] == -1 && Q[qi] == -1) //case 10
 			break;

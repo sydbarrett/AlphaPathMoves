@@ -1,4 +1,10 @@
 /*
+This software has been modified by Hossam Isack <isack.hossam@gmail.com> and Karin Ng <karinng10@gmail.com>, 
+to handle large graphs and to allow graph rests (to avoid reallocating memeory when weights change).
+This software is provied "AS IS" without any warranty, please see original disclaimer below.
+*/
+
+/*
 #########################################################
 #                                                       #
 #  IBFSGraph -  Software for solving                    #
@@ -46,10 +52,11 @@ If you require another license, please contact the above.
 
 #include <stdio.h>
 #include <string.h>
+#include <cstdint>
 
 #if defined(_MSC_VER)
 #include <BaseTsd.h>
-typedef SSIZE_T ssize_t;
+typedef SSIZE_T int64_t;
 #endif
 
 #define IB_BOTTLENECK_ORIG 0
@@ -61,7 +68,6 @@ typedef SSIZE_T ssize_t;
 #define IB_ALTERNATE_SMART 1
 #define IB_HYBRID_ADOPTION 1
 #define IB_EXCESSES 1
-//#define IB_ALLOC_INIT_LEVELS 1152921504606846976 //max(long long)/8
 #define IB_ALLOC_INIT_LEVELS 4096
 #define IB_ADOPTION_PR 0
 #define IB_DEBUG_INIT 0
@@ -106,14 +112,14 @@ public:
 	double inline getOrphanArcs2() {return orphanArcs2;}
 	void inline incOrphanArcs3() {if (IBSTATS) orphanArcs3++;}
 	double inline getOrphanArcs3() {return orphanArcs3;}
-	void inline addAugLen(ssize_t len) {
+	void inline addAugLen(int64_t len) {
 		if (IBSTATS) {
 			if (len > augLenMax) augLenMax = len;
 			if (len < augLenMin) augLenMin = len;
 		}
 	}
-	ssize_t inline getAugLenMin() {return augLenMin;}
-	ssize_t inline getAugLenMax() {return augLenMax;}
+	int64_t inline getAugLenMin() {return augLenMin;}
+	int64_t inline getAugLenMax() {return augLenMax;}
 
 private:
 	double augs;
@@ -126,8 +132,8 @@ private:
 	double orphanArcs1;
 	double orphanArcs2;
 	double orphanArcs3;
-	ssize_t augLenMin;
-	ssize_t augLenMax;
+	int64_t augLenMin;
+	int64_t augLenMax;
 };
 
 
@@ -142,12 +148,12 @@ public:
 	void setVerbose(bool a_verbose) {
 		verbose = a_verbose;
 	}
-	void initSize(ssize_t numNodes, ssize_t numEdges);
+	void initSize(int64_t numNodes, int64_t numEdges);
 	void reset();
-	void addEdge(ssize_t nodeIndexFrom, ssize_t nodeIndexTo, captype capacity, captype reverseCapacity);
-	void addNode(ssize_t nodeIndex, tcaptype capFromSource, tcaptype capToSink);
-	void incEdge(ssize_t nodeIndexFrom, ssize_t nodeIndexTo, captype capacity, captype reverseCapacity);
-	void incNode(ssize_t nodeIndex, tcaptype deltaCapFromSource, tcaptype deltaCapToSink);
+	void addEdge(int64_t nodeIndexFrom, int64_t nodeIndexTo, captype capacity, captype reverseCapacity);
+	void addNode(int64_t nodeIndex, tcaptype capFromSource, tcaptype capToSink);
+	void incEdge(int64_t nodeIndexFrom, int64_t nodeIndexTo, captype capacity, captype reverseCapacity);
+	void incNode(int64_t nodeIndex, tcaptype deltaCapFromSource, tcaptype deltaCapToSink);
 	bool incShouldResetTrees();
 	struct Arc;
 	void incArc(Arc *a, captype deltaCap);
@@ -168,13 +174,13 @@ public:
 	inline flowtype getFlow() {
 		return flow;
 	}
-	inline ssize_t getNumNodes() {
+	inline int64_t getNumNodes() {
 		return nodeEnd-nodes;
 	}
-	inline ssize_t getNumArcs() {
+	inline int64_t getNumArcs() {
 		return arcEnd-arcs;
 	}
-	int isNodeOnSrcSide(ssize_t nodeIndex, int freeNodeValue = 0);
+	int isNodeOnSrcSide(int64_t nodeIndex, int freeNodeValue = 0);
 
 
 	struct Node;
@@ -190,40 +196,40 @@ public:
 
 	struct Node
 	{
-		ssize_t		lastAugTimestamp;
+		int64_t		lastAugTimestamp;
 		int			isParentCurr:1;
 		int			isIncremental:1;
 		Arc			*firstArc;
 		Arc			*parent;
 		Node		*firstSon;
 		Node		*nextPtr;
-		ssize_t		label;	// label > 0: distance from s, label < 0: -distance from t
+		int64_t		label;	// label > 0: distance from s, label < 0: -distance from t
 		tcaptype	excess;	 // excess > 0: capacity from s, excess < 0: -capacity to t
 	};
 
 private:
-	ssize_t init_n_nodes;
-	ssize_t init_n_edges;
+	int64_t init_n_nodes;
+	int64_t init_n_edges;
 	Arc *arcIter;
 	void augment(Arc *bridge);
-	template<bool sTree> ssize_t augmentPath(Node *x, captype push);
-	template<bool sTree> ssize_t augmentExcess(Node *x, captype push);
+	template<bool sTree> int64_t augmentPath(Node *x, captype push);
+	template<bool sTree> int64_t augmentExcess(Node *x, captype push);
 	template<bool sTree> void augmentExcesses();
 	template<bool sTree> void augmentDischarge(Node *x);
 	template<bool sTree> void augmentExcessesDischarge();
 	template<bool sTree> void augmentIncrements();
-	template <bool sTree> void adoption(ssize_t fromLevel, bool toTop);
-	template <bool sTree> void adoption3Pass(ssize_t minBucket);
+	template <bool sTree> void adoption(int64_t fromLevel, bool toTop);
+	template <bool sTree> void adoption3Pass(int64_t minBucket);
 	template <bool dirS> void growth();
 
 	flowtype computeMaxFlow(bool trackChanges, bool initialDirS);
-	void resetTrees(ssize_t newTopLevelS, ssize_t newTopLevelT);
+	void resetTrees(int64_t newTopLevelS, int64_t newTopLevelT);
 
 	// push relabel
 	template<bool sTree> void pushRelabelDischarge(Node *x);
 	template<bool sTree> void pushRelabelGlobalUpdate();
 	template<bool sTree> void pushRelabelDir();
-	void pushRelabelShelve(ssize_t fromLevel);
+	void pushRelabelShelve(int64_t fromLevel);
 
 	class ActiveList
 	{
@@ -256,7 +262,7 @@ private:
 			(*b) = tmp;
 		}
 		Node **list;
-		ssize_t len;
+		int64_t len;
 	};
 
 
@@ -275,7 +281,7 @@ private:
 			nodes = NULL;
 			allocLevels = 0;
 		}
-		inline void init(Node *a_nodes, ssize_t numNodes) {
+		inline void init(Node *a_nodes, int64_t numNodes) {
 			nodes = a_nodes;
 			allocLevels = numNodes/8;
 			if (allocLevels < IB_ALLOC_INIT_LEVELS) {
@@ -286,7 +292,7 @@ private:
 			memset(buckets, 0, sizeof(Node*)*(allocLevels+1));
 			maxBucket = 0;
 		}
-		inline void init_NoAlloc(Node *a_nodes, ssize_t numNodes) {
+		inline void init_NoAlloc(Node *a_nodes, int64_t numNodes) {
 			nodes = a_nodes;
 			allocLevels = numNodes / 8;
 			if (allocLevels < IB_ALLOC_INIT_LEVELS) {
@@ -297,7 +303,7 @@ private:
 			memset(buckets, 0, sizeof(Node*)*(allocLevels + 1));
 			maxBucket = 0;
 		}
-		inline void allocate(ssize_t numLevels) {
+		inline void allocate(int64_t numLevels) {
 			if (numLevels > allocLevels) {
 				allocLevels <<= 1;
 				Node **alloc = new Node*[allocLevels+1];
@@ -311,12 +317,12 @@ private:
 			buckets = NULL;
 		}
 		template <bool sTree> inline void add(Node* x) {
-			ssize_t bucket = (sTree ? (x->label) : (-x->label));
+			int64_t bucket = (sTree ? (x->label) : (-x->label));
 			x->nextPtr = buckets[bucket];
 			buckets[bucket] = x;
 			if (bucket > maxBucket) maxBucket = bucket;
 		}
-		inline Node* popFront(ssize_t bucket) {
+		inline Node* popFront(int64_t bucket) {
 			Node *x;
 			if ((x = buckets[bucket]) == NULL) return NULL;
 			buckets[bucket] = x->nextPtr;
@@ -324,9 +330,9 @@ private:
 		}
 
 		Node **buckets;
-		ssize_t maxBucket;
+		int64_t maxBucket;
 		Node *nodes;
-		ssize_t allocLevels;
+		int64_t allocLevels;
 	};
 
 
@@ -339,7 +345,7 @@ private:
 			nodes = NULL;
 			maxBucket = allocLevels = -1;
 		}
-		inline void init(Node *a_nodes, ssize_t numNodes) {
+		inline void init(Node *a_nodes, int64_t numNodes) {
 			nodes = a_nodes;
 			allocLevels = numNodes/8;
 			if (allocLevels < IB_ALLOC_INIT_LEVELS) {
@@ -350,7 +356,7 @@ private:
 			memset(buckets, 0, sizeof(Node*)*(allocLevels+1));
 			maxBucket = 0;
 		}
-		inline void init_NoAlloc(Node *a_nodes, ssize_t numNodes) {
+		inline void init_NoAlloc(Node *a_nodes, int64_t numNodes) {
 			nodes = a_nodes;
 			allocLevels = numNodes / 8;
 			if (allocLevels < IB_ALLOC_INIT_LEVELS) {
@@ -361,7 +367,7 @@ private:
 			memset(buckets, 0, sizeof(Node*)*(allocLevels + 1));
 			maxBucket = 0;
 		}
-		inline void allocate(ssize_t numLevels) {
+		inline void allocate(int64_t numLevels) {
 			if (numLevels > allocLevels) {
 				allocLevels <<= 1;
 				Node **alloc = new Node*[allocLevels+1];
@@ -375,12 +381,12 @@ private:
 			buckets = NULL;
 		}
 		template <bool sTree> inline void add(Node* x) {
-			ssize_t bucket = (sTree ? (x->label) : (-x->label));
+			int64_t bucket = (sTree ? (x->label) : (-x->label));
 			if ((x->nextPtr = buckets[bucket]) != NULL) IB_PREVPTR_3PASS(x->nextPtr) = x;
 			buckets[bucket] = x;
 			if (bucket > maxBucket) maxBucket = bucket;
 		}
-		inline Node* popFront(ssize_t bucket) {
+		inline Node* popFront(int64_t bucket) {
 			Node *x = buckets[bucket];
 			if (x == NULL) return NULL;
 			buckets[bucket] = x->nextPtr;
@@ -388,7 +394,7 @@ private:
 			return x;
 		}
 		template <bool sTree> inline void remove(Node *x) {
-			ssize_t bucket = (sTree ? (x->label) : (-x->label));
+			int64_t bucket = (sTree ? (x->label) : (-x->label));
 			if (buckets[bucket] == x) {
 				buckets[bucket] = x->nextPtr;
 			} else {
@@ -397,14 +403,14 @@ private:
 			}
 			IB_PREVPTR_3PASS(x) = NULL;
 		}
-		inline bool isEmpty(ssize_t bucket) {
+		inline bool isEmpty(int64_t bucket) {
 			return buckets[bucket] == NULL;
 		}
 
 		Node **buckets;
-		ssize_t maxBucket;
+		int64_t maxBucket;
 		Node *nodes;
-		ssize_t allocLevels;
+		int64_t allocLevels;
 	};
 
 	class ExcessBuckets
@@ -415,7 +421,7 @@ private:
 			nodes = NULL;
 			allocLevels = maxBucket = minBucket = -1;
 		}
-		inline void init(Node *a_nodes, Node **a_ptrs, ssize_t numNodes) {
+		inline void init(Node *a_nodes, Node **a_ptrs, int64_t numNodes) {
 			nodes = a_nodes;
 			allocLevels = numNodes/8;
 			if (allocLevels < IB_ALLOC_INIT_LEVELS) {
@@ -427,7 +433,7 @@ private:
 			ptrs = a_ptrs;
 			reset();
 		}
-		inline void init_NoAlloc(Node *a_nodes, Node **a_ptrs, ssize_t numNodes) {
+		inline void init_NoAlloc(Node *a_nodes, Node **a_ptrs, int64_t numNodes) {
 			nodes = a_nodes;
 			allocLevels = numNodes / 8;
 			if (allocLevels < IB_ALLOC_INIT_LEVELS) {
@@ -439,7 +445,7 @@ private:
 			ptrs = a_ptrs;
 			reset();
 		}
-		inline void allocate(ssize_t numLevels) {
+		inline void allocate(int64_t numLevels) {
 			if (numLevels > allocLevels) {
 				allocLevels <<= 1;
 				Node **alloc = new Node*[allocLevels+1];
@@ -455,7 +461,7 @@ private:
 		}
 
 		template <bool sTree> inline void add(Node* x) {
-			ssize_t bucket = (sTree ? (x->label) : (-x->label));
+			int64_t bucket = (sTree ? (x->label) : (-x->label));
 			IB_NEXTPTR_EXCESS(x) = buckets[bucket];
 			if (buckets[bucket] != NULL) {
 				IB_PREVPTR_EXCESS(buckets[bucket]) = x;
@@ -464,14 +470,14 @@ private:
 			if (bucket > maxBucket) maxBucket = bucket;
 			if (bucket != 0 && bucket < minBucket) minBucket = bucket;
 		}
-		inline Node* popFront(ssize_t bucket) {
+		inline Node* popFront(int64_t bucket) {
 			Node *x = buckets[bucket];
 			if (x == NULL) return NULL;
 			buckets[bucket] = IB_NEXTPTR_EXCESS(x);
 			return x;
 		}
 		template <bool sTree> inline void remove(Node *x) {
-			ssize_t bucket = (sTree ? (x->label) : (-x->label));
+			int64_t bucket = (sTree ? (x->label) : (-x->label));
 			if (buckets[bucket] == x) {
 				buckets[bucket] = IB_NEXTPTR_EXCESS(x);
 			} else {
@@ -482,7 +488,7 @@ private:
 				if (IB_NEXTPTR_EXCESS(x) != NULL) IB_PREVPTR_EXCESS(IB_NEXTPTR_EXCESS(x)) = IB_PREVPTR_EXCESS(x);
 			}
 		}
-		inline void incMaxBucket(ssize_t bucket) {
+		inline void incMaxBucket(int64_t bucket) {
 			if (maxBucket < bucket) maxBucket = bucket;
 		}
 		inline bool empty() {
@@ -495,10 +501,10 @@ private:
 
 		Node **buckets;
 		Node **ptrs;
-		ssize_t maxBucket;
-		ssize_t minBucket;
+		int64_t maxBucket;
+		int64_t minBucket;
 		Node *nodes;
-		ssize_t allocLevels;
+		int64_t allocLevels;
 	};
 
 	// members
@@ -506,10 +512,10 @@ private:
 	Node	*nodes, *nodeEnd;
 	Arc		*arcs, *arcEnd;
 	Node	**ptrs;
-	ssize_t numNodes;
+	int64_t numNodes;
 	flowtype flow;
-	ssize_t 	augTimestamp;
-	ssize_t topLevelS, topLevelT;
+	int64_t 	augTimestamp;
+	int64_t topLevelS, topLevelT;
 	ActiveList active0, activeS1, activeT1;
 	Node **incList;
 	int incLen;
@@ -529,7 +535,7 @@ private:
 	//
 	// Orphans
 	//
-	ssize_t uniqOrphansS, uniqOrphansT;
+	int64_t uniqOrphansS, uniqOrphansT;
 	template <bool sTree> inline void orphanFree(Node *x) {
 		if (IB_EXCESSES && x->excess) {
 			x->label = (sTree ? -topLevelT : topLevelS);
@@ -546,8 +552,8 @@ private:
 	//
 	struct TmpEdge
 	{
-		ssize_t		head;
-		ssize_t		tail;
+		int64_t		head;
+		int64_t		tail;
 		captype		cap;
 		captype		revCap;
 	};
@@ -586,7 +592,7 @@ private:
 
 
 template <typename captype, typename tcaptype, typename flowtype>
-inline void IBFSGraph<captype, tcaptype, flowtype>::addNode(ssize_t nodeIndex, tcaptype capSource, tcaptype capSink)
+inline void IBFSGraph<captype, tcaptype, flowtype>::addNode(int64_t nodeIndex, tcaptype capSource, tcaptype capSink)
 {
 	captype f = nodes[nodeIndex].excess;
 	if (f > 0) {
@@ -612,7 +618,7 @@ inline void IBFSGraph<captype, tcaptype, flowtype>::resetTrees()
 
 // @pre: activeS1.len == 0 && activeT1.len == 0
 template <typename captype, typename tcaptype, typename flowtype>
-inline void IBFSGraph<captype, tcaptype, flowtype>::resetTrees(ssize_t newTopLevelS, ssize_t newTopLevelT)
+inline void IBFSGraph<captype, tcaptype, flowtype>::resetTrees(int64_t newTopLevelS, int64_t newTopLevelT)
 {
 	uniqOrphansS = uniqOrphansT = 0;
 	topLevelS = newTopLevelS;
@@ -641,11 +647,11 @@ inline void IBFSGraph<captype, tcaptype, flowtype>::resetTrees(ssize_t newTopLev
 template <typename captype, typename tcaptype, typename flowtype>
 inline bool IBFSGraph<captype, tcaptype, flowtype>::incShouldResetTrees()
 {
-	return (uniqOrphansS + uniqOrphansT) >= 2*numNodes; // TODO: Make sure uniqOrphansS + uniqOrphansT can be compared to ssize_t
+	return (uniqOrphansS + uniqOrphansT) >= 2*numNodes; // TODO: Make sure uniqOrphansS + uniqOrphansT can be compared to int64_t
 }
 
 template <typename captype, typename tcaptype, typename flowtype>
-inline void IBFSGraph<captype, tcaptype, flowtype>::incNode(ssize_t nodeIndex, tcaptype deltaCapSource, tcaptype deltaCapSink)
+inline void IBFSGraph<captype, tcaptype, flowtype>::incNode(int64_t nodeIndex, tcaptype deltaCapSource, tcaptype deltaCapSink)
 {
 	Node *x = (nodes+nodeIndex);
 
@@ -736,7 +742,7 @@ inline void IBFSGraph<captype, tcaptype, flowtype>::incArc(Arc *a, captype delta
 }
 
 template <typename captype, typename tcaptype, typename flowtype>
-inline void IBFSGraph<captype, tcaptype, flowtype>::addEdge(ssize_t nodeIndexFrom, ssize_t nodeIndexTo, captype capacity, captype reverseCapacity)
+inline void IBFSGraph<captype, tcaptype, flowtype>::addEdge(int64_t nodeIndexFrom, int64_t nodeIndexTo, captype capacity, captype reverseCapacity)
 {
 	tmpEdgeLast->tail = nodeIndexFrom;
 	tmpEdgeLast->head = nodeIndexTo;
@@ -751,7 +757,7 @@ inline void IBFSGraph<captype, tcaptype, flowtype>::addEdge(ssize_t nodeIndexFro
 }
 
 template <typename captype, typename tcaptype, typename flowtype>
-inline void IBFSGraph<captype, tcaptype, flowtype>::incEdge(ssize_t nodeIndexFrom, ssize_t nodeIndexTo, captype capacity, captype reverseCapacity)
+inline void IBFSGraph<captype, tcaptype, flowtype>::incEdge(int64_t nodeIndexFrom, int64_t nodeIndexTo, captype capacity, captype reverseCapacity)
 {
 	Node *x = nodes + nodeIndexFrom;
 	Node *y = nodes + nodeIndexTo;
@@ -777,7 +783,7 @@ inline void IBFSGraph<captype, tcaptype, flowtype>::incEdge(ssize_t nodeIndexFro
 
 
 template <typename captype, typename tcaptype, typename flowtype>
-inline int IBFSGraph<captype, tcaptype, flowtype>::isNodeOnSrcSide(ssize_t nodeIndex, int freeNodeValue)
+inline int IBFSGraph<captype, tcaptype, flowtype>::isNodeOnSrcSide(int64_t nodeIndex, int freeNodeValue)
 {
 	if (nodes[nodeIndex].label == 0) 
 	{
@@ -857,21 +863,21 @@ inline void IBFSGraph<captype, tcaptype, flowtype>::initGraph()
 
 
 template <typename captype, typename tcaptype, typename flowtype>
-inline void IBFSGraph<captype, tcaptype, flowtype>::initSize(ssize_t numNodes, ssize_t numEdges)
+inline void IBFSGraph<captype, tcaptype, flowtype>::initSize(int64_t numNodes, int64_t numEdges)
 {
 	init_n_nodes = numNodes;
 	init_n_edges = numEdges;
 	// compute allocation size
-	unsigned long long arcTmpMemsize = (unsigned long long)sizeof(TmpEdge)*(unsigned long long)numEdges;
-	unsigned long long arcRealMemsize = (unsigned long long)sizeof(Arc)*(unsigned long long)(numEdges * 2);
-	unsigned long long nodeMemsize = (unsigned long long)sizeof(Node**)*(unsigned long long)(numNodes * 3) +
-		(IB_EXCESSES ? ((unsigned long long)sizeof(Node**)*(unsigned long long)(numNodes * 2)) : 0);
-	unsigned long long arcMemsize = 0;
+	uint64_t arcTmpMemsize = (uint64_t)sizeof(TmpEdge)*(uint64_t)numEdges;
+	uint64_t arcRealMemsize = (uint64_t)sizeof(Arc)*(uint64_t)(numEdges * 2);
+	uint64_t nodeMemsize = (uint64_t)sizeof(Node**)*(uint64_t)(numNodes * 3) +
+		(IB_EXCESSES ? ((uint64_t)sizeof(Node**)*(uint64_t)(numNodes * 2)) : 0);
+	uint64_t arcMemsize = 0;
 	if (initMode == IB_INIT_FAST) {
 		arcMemsize = arcRealMemsize + arcTmpMemsize;
 	}
 	else if (initMode == IB_INIT_COMPACT) {
-		arcTmpMemsize += (unsigned long long)sizeof(TmpArc)*(unsigned long long)(numEdges * 2);
+		arcTmpMemsize += (uint64_t)sizeof(TmpArc)*(uint64_t)(numEdges * 2);
 		arcMemsize = arcTmpMemsize;
 	}
 	if (arcMemsize < (arcRealMemsize + nodeMemsize)) {
@@ -880,17 +886,17 @@ inline void IBFSGraph<captype, tcaptype, flowtype>::initSize(ssize_t numNodes, s
 
 	// alocate arcs
 	if (verbose) {
-		fprintf(stdout, "c allocating arcs... \t [%lu MB]\n", (unsigned long)arcMemsize / (1 << 20));
+		fprintf(stdout, "c allocating arcs... \t [%lu MB]\n", (uint64_t)arcMemsize / (1 << 20));
 		fflush(stdout);
 	}
 	memArcs = new char[arcMemsize];
-	memset(memArcs, 0, (unsigned long long)sizeof(char)*arcMemsize);
+	memset(memArcs, 0, (uint64_t)sizeof(char)*arcMemsize);
 	if (initMode == IB_INIT_FAST) {
 		tmpEdges = (TmpEdge*)(memArcs + arcRealMemsize);
 	}
 	else if (initMode == IB_INIT_COMPACT) {
 		tmpEdges = (TmpEdge*)(memArcs);
-		tmpArcs = (TmpArc*)(memArcs + arcMemsize - (unsigned long long)sizeof(TmpArc)*(unsigned long long)(numEdges * 2));
+		tmpArcs = (TmpArc*)(memArcs + arcMemsize - (uint64_t)sizeof(TmpArc)*(uint64_t)(numEdges * 2));
 	}
 	tmpEdgeLast = tmpEdges; // will advance as edges are added
 	arcs = (Arc*)memArcs;
@@ -928,16 +934,16 @@ template <typename captype, typename tcaptype, typename flowtype>
 inline  void IBFSGraph<captype, tcaptype, flowtype>::reset()
 {
 	// compute allocation size
-	unsigned long long arcTmpMemsize = (unsigned long long)sizeof(TmpEdge)*(unsigned long long)init_n_edges;
-	unsigned long long arcRealMemsize = (unsigned long long)sizeof(Arc)*(unsigned long long)(init_n_edges * 2);
-	unsigned long long nodeMemsize = (unsigned long long)sizeof(Node**)*(unsigned long long)(init_n_nodes * 3) +
-		(IB_EXCESSES ? ((unsigned long long)sizeof(Node**)*(unsigned long long)(init_n_nodes * 2)) : 0);
-	unsigned long long arcMemsize = 0;
+	uint64_t arcTmpMemsize = (uint64_t)sizeof(TmpEdge)*(uint64_t)init_n_edges;
+	uint64_t arcRealMemsize = (uint64_t)sizeof(Arc)*(uint64_t)(init_n_edges * 2);
+	uint64_t nodeMemsize = (uint64_t)sizeof(Node**)*(uint64_t)(init_n_nodes * 3) +
+		(IB_EXCESSES ? ((uint64_t)sizeof(Node**)*(uint64_t)(init_n_nodes * 2)) : 0);
+	uint64_t arcMemsize = 0;
 	if (initMode == IB_INIT_FAST) {
 		arcMemsize = arcRealMemsize + arcTmpMemsize;
 	}
 	else if (initMode == IB_INIT_COMPACT) {
-		arcTmpMemsize += (unsigned long long)sizeof(TmpArc)*(unsigned long long)(init_n_edges * 2);
+		arcTmpMemsize += (uint64_t)sizeof(TmpArc)*(uint64_t)(init_n_edges * 2);
 		arcMemsize = arcTmpMemsize;
 	}
 	if (arcMemsize < (arcRealMemsize + nodeMemsize)) {
@@ -946,16 +952,16 @@ inline  void IBFSGraph<captype, tcaptype, flowtype>::reset()
 
 	// alocate arcs
 	if (verbose) {
-		fprintf(stdout, "c allocating arcs... \t [%lu MB]\n", (unsigned long)arcMemsize / (1 << 20));
+		fprintf(stdout, "c allocating arcs... \t [%lu MB]\n", (uint64_t)arcMemsize / (1 << 20));
 		fflush(stdout);
 	}
-	memset(memArcs, 0, (unsigned long long)sizeof(char)*arcMemsize);
+	memset(memArcs, 0, (uint64_t)sizeof(char)*arcMemsize);
 	if (initMode == IB_INIT_FAST) {
 		tmpEdges = (TmpEdge*)(memArcs + arcRealMemsize);
 	}
 	else if (initMode == IB_INIT_COMPACT) {
 		tmpEdges = (TmpEdge*)(memArcs);
-		tmpArcs = (TmpArc*)(memArcs + arcMemsize - (unsigned long long)sizeof(TmpArc)*(unsigned long long)(init_n_edges * 2));
+		tmpArcs = (TmpArc*)(memArcs + arcMemsize - (uint64_t)sizeof(TmpArc)*(uint64_t)(init_n_edges * 2));
 	}
 	tmpEdgeLast = tmpEdges; // will advance as edges are added
 	arcs = (Arc*)memArcs;
@@ -1161,11 +1167,11 @@ inline  void IBFSGraph<captype, tcaptype, flowtype>::initGraphCompact()
 // @ret: minimum orphan level
 template <typename captype, typename tcaptype, typename flowtype>
 template<bool sTree>
-inline  ssize_t IBFSGraph<captype, tcaptype, flowtype>::augmentPath(Node *x, captype push)
+inline  int64_t IBFSGraph<captype, tcaptype, flowtype>::augmentPath(Node *x, captype push)
 {
 	Node *y;
 	Arc *a;
-	ssize_t orphanMinLevel = (sTree ? topLevelS : topLevelT) + 1;
+	int64_t orphanMinLevel = (sTree ? topLevelS : topLevelT) + 1;
 
 	augTimestamp++;
 	for (;; x = a->head)
@@ -1208,11 +1214,11 @@ inline  ssize_t IBFSGraph<captype, tcaptype, flowtype>::augmentPath(Node *x, cap
 // @ret: minimum level in which created an orphan
 template <typename captype, typename tcaptype, typename flowtype>
 template<bool sTree>
-inline  ssize_t IBFSGraph<captype, tcaptype, flowtype>::augmentExcess(Node *x, captype push)
+inline  int64_t IBFSGraph<captype, tcaptype, flowtype>::augmentExcess(Node *x, captype push)
 {
 	Node *y;
 	Arc *a;
-	ssize_t orphanMinLevel = (sTree ? topLevelS : topLevelT) + 1;
+	int64_t orphanMinLevel = (sTree ? topLevelS : topLevelT) + 1;
 	augTimestamp++;
 
 	// start of loop
@@ -1297,8 +1303,8 @@ template<bool sTree>
 inline  void IBFSGraph<captype, tcaptype, flowtype>::augmentExcesses()
 {
 	Node *x;
-	ssize_t minOrphanLevel;
-	ssize_t adoptedUpToLevel = excessBuckets.maxBucket;
+	int64_t minOrphanLevel;
+	int64_t adoptedUpToLevel = excessBuckets.maxBucket;
 
 	if (!excessBuckets.empty())
 		for (; excessBuckets.maxBucket != (excessBuckets.minBucket - 1); excessBuckets.maxBucket--)
@@ -1322,7 +1328,7 @@ inline  void IBFSGraph<captype, tcaptype, flowtype>::augment(Arc *bridge)
 	Node *x, *y;
 	Arc *a;
 	captype bottleneck, bottleneckT, bottleneckS;
-	ssize_t minOrphanLevel;
+	int64_t minOrphanLevel;
 	bool forceBottleneck;
 	stats.incAugs();
 
@@ -1383,7 +1389,7 @@ inline  void IBFSGraph<captype, tcaptype, flowtype>::augment(Arc *bridge)
 
 	// stats
 	if (IBSTATS) {
-		ssize_t augLen = (-(bridge->head->label) - 1 + bridge->rev->head->label - 1 + 1);
+		int64_t augLen = (-(bridge->head->label) - 1 + bridge->rev->head->label - 1 + 1);
 		stats.addAugLen(augLen);
 	}
 
@@ -1438,14 +1444,14 @@ inline  void IBFSGraph<captype, tcaptype, flowtype>::augment(Arc *bridge)
 
 template <typename captype, typename tcaptype, typename flowtype>
 template<bool sTree>
-inline  void IBFSGraph<captype, tcaptype, flowtype>::adoption(ssize_t fromLevel, bool toTop)
+inline  void IBFSGraph<captype, tcaptype, flowtype>::adoption(int64_t fromLevel, bool toTop)
 {
 	Node *x, *y, *z;
 	register Arc *a;
 	Arc *aEnd;
-	ssize_t threePassLevel;
-	ssize_t minLabel, numOrphans, numOrphansUniq;
-	ssize_t level;
+	int64_t threePassLevel;
+	int64_t minLabel, numOrphans, numOrphansUniq;
+	int64_t level;
 
 	threePassLevel = 0;
 	numOrphans = 0;
@@ -1583,13 +1589,13 @@ inline  void IBFSGraph<captype, tcaptype, flowtype>::adoption(ssize_t fromLevel,
 
 template <typename captype, typename tcaptype, typename flowtype>
 template<bool sTree>
-inline void IBFSGraph<captype, tcaptype, flowtype>::adoption3Pass(ssize_t minBucket)
+inline void IBFSGraph<captype, tcaptype, flowtype>::adoption3Pass(int64_t minBucket)
 {
 	Arc *a, *aEnd;
 	Node *x, *y;
-	ssize_t minLabel, destLabel;
+	int64_t minLabel, destLabel;
 
-	for (ssize_t level = minBucket; level <= orphan3PassBuckets.maxBucket; level++)
+	for (int64_t level = minBucket; level <= orphan3PassBuckets.maxBucket; level++)
 		while ((x = orphan3PassBuckets.popFront(level)) != NULL)
 		{
 		testNode(x);
@@ -1720,7 +1726,7 @@ inline void IBFSGraph<captype, tcaptype, flowtype>::augmentIncrements()
 {
 	Node *x, *y;
 	Node **end = incList + incLen;
-	ssize_t minOrphanLevel = 1 << 30;
+	int64_t minOrphanLevel = 1 << 30;
 
 	for (Node **inc = incList; inc != end; inc++)
 	{
@@ -1903,8 +1909,8 @@ inline void IBFSGraph<captype, tcaptype, flowtype>::computeMinMarginals()
 	//	memcpy(arcsCopy, arcs, sizeof(Arc)*(arcEnd-arcs));
 	//	memcpy(nodesCopy, nodes, sizeof(Node)*(numNodes));
 
-	ssize_t nEmpty = 0;
-	for (ssize_t nodeIndex = 0; nodeIndex < (nodeEnd - nodes); nodeIndex++)
+	int64_t nEmpty = 0;
+	for (int64_t nodeIndex = 0; nodeIndex < (nodeEnd - nodes); nodeIndex++)
 	{
 		if (srcSide[nodeIndex] == 2) {
 			//			flowDiffs[nodeIndex] = 0;
@@ -1947,8 +1953,8 @@ inline void IBFSGraph<captype, tcaptype, flowtype>::computeMinMarginals()
 
 
 		if (IB_MIN_MARGINALS_DEBUG && (incIteration % ((nodeEnd - nodes) / 10) == 0)) {
-			ssize_t minLabelS = topLevelS;
-			ssize_t minLabelT = topLevelT;
+			int64_t minLabelS = topLevelS;
+			int64_t minLabelT = topLevelT;
 			for (x = nodes; x != nodeEnd; x++) {
 				if (x->label > 0 && x->label < minLabelS) minLabelS = x->label;
 				else if (x->label < 0 && -x->label < minLabelT) minLabelT = -x->label;
@@ -2025,11 +2031,11 @@ template<bool sTree>
 inline void IBFSGraph<captype, tcaptype, flowtype>::augmentDischarge(Node *x)
 {
 	Node *y, *z;
-	ssize_t minLabel;
+	int64_t minLabel;
 	flowtype push;
 	Arc *aEnd = (x + 1)->firstArc;
 	Arc *a;
-	ssize_t startLabel = x->label;
+	int64_t startLabel = x->label;
 	testNode(x);
 
 	// loop
@@ -2204,7 +2210,7 @@ inline void IBFSGraph<captype, tcaptype, flowtype>::testTree()
 			testExit();
 		}
 		if (x->label == (sTree ? topLevelS : -topLevelT)) {
-			ssize_t k = 0;
+			int64_t k = 0;
 			for (; k < (sTree ? activeS1 : activeT1).len; k++) {
 				if ((sTree ? activeS1 : activeT1).list[k] == x) break;
 			}
@@ -2249,7 +2255,7 @@ inline void IBFSGraph<captype, tcaptype, flowtype>::testTree()
 		}
 	}
 
-	if ((ssize_t)(testExcess - totalExcess) != (ssize_t)(flow - testFlow)) {
+	if ((int64_t)(testExcess - totalExcess) != (int64_t)(flow - testFlow)) {
 		//		IBDEBUG("ILLEGAL FLOW!");
 		//		testExit();
 	}
@@ -2258,8 +2264,8 @@ inline void IBFSGraph<captype, tcaptype, flowtype>::testTree()
 template<typename captype, typename tcaptype, typename flowtype>
 inline void IBFSGraph<captype, tcaptype, flowtype>::testPrint()
 {
-	size_t *nums = new size_t[numNodes];
-	memset(nums, 0, sizeof(size_t)*numNodes);
+	uint64_t *nums = new uint64_t[numNodes];
+	memset(nums, 0, sizeof(uint64_t)*numNodes);
 	for (Node *x = nodes; x != nodeEnd; x++)
 	{
 		if (x->label >= 0) {
@@ -2270,11 +2276,11 @@ inline void IBFSGraph<captype, tcaptype, flowtype>::testPrint()
 		}
 	}
 	fprintf(stdout, "S = ");
-	for (ssize_t i = 1; i <= topLevelS; i++) {
+	for (int64_t i = 1; i <= topLevelS; i++) {
 		fprintf(stdout, "%zd ", nums[i]);
 	}
 	fprintf(stdout, "\nT = ");
-	for (ssize_t i = 1; i <= topLevelT; i++) {
+	for (int64_t i = 1; i <= topLevelT; i++) {
 		fprintf(stdout, "%zd ", nums[numNodes - i]);
 	}
 	delete[]nums;
@@ -2289,10 +2295,10 @@ inline void IBFSGraph<captype, tcaptype, flowtype>::testPrint()
 // push relabel implementation
 ///////////////////////////////////////////////////
 template<typename captype, typename tcaptype, typename flowtype>
-inline void IBFSGraph<captype, tcaptype, flowtype>::pushRelabelShelve(ssize_t fromLevel)
+inline void IBFSGraph<captype, tcaptype, flowtype>::pushRelabelShelve(int64_t fromLevel)
 {
 	Node *x = NULL;
-	for (ssize_t bucket = fromLevel; bucket <= prNodeBuckets.maxBucket; bucket++) {
+	for (int64_t bucket = fromLevel; bucket <= prNodeBuckets.maxBucket; bucket++) {
 		if (prNodeBuckets.isEmpty(bucket)) continue;
 		//		if (x == NULL) prNodeShelves.add(prNodeBuckets.buckets[bucket]);
 		//		else x->nextPtr = prNodeBuckets.buckets[bucket];
@@ -2302,7 +2308,7 @@ inline void IBFSGraph<captype, tcaptype, flowtype>::pushRelabelShelve(ssize_t fr
 		//		x->label = -(x->label-fromLevel);
 		for (x = prNodeBuckets.buckets[bucket]; x != NULL; x = x->nextPtr) x->label = 0;
 	}
-	ssize_t numLevels = prNodeBuckets.maxBucket - fromLevel + 1;
+	int64_t numLevels = prNodeBuckets.maxBucket - fromLevel + 1;
 	memset(prNodeBuckets.buckets + fromLevel, 0, sizeof(Node*)*numLevels);
 	memset(excessBuckets.buckets + fromLevel, 0, sizeof(Node*)*numLevels);
 	prNodeBuckets.maxBucket = fromLevel - 1;
@@ -2331,14 +2337,14 @@ template<bool sTree>
 inline void IBFSGraph<captype, tcaptype, flowtype>::pushRelabelDir()
 {
 	Node *x;
-	ssize_t level;
+	int64_t level;
 
 	// init
 	topLevelS = topLevelT = numNodes;
 	pushRelabelGlobalUpdate<sTree>();
 
 	// main loop
-	size_t nDischarges = 0;
+	uint64_t nDischarges = 0;
 	for (; excessBuckets.maxBucket >= excessBuckets.minBucket; excessBuckets.maxBucket--)
 		while ((x = excessBuckets.popFront(excessBuckets.maxBucket)) != NULL)
 		{
@@ -2377,7 +2383,7 @@ inline void IBFSGraph<captype, tcaptype, flowtype>::pushRelabelGlobalUpdate()
 		}
 		else x->label = 0;
 	}
-	for (ssize_t bucket = 1; bucket <= prNodeBuckets.maxBucket; bucket++)
+	for (int64_t bucket = 1; bucket <= prNodeBuckets.maxBucket; bucket++)
 		for (x = prNodeBuckets.buckets[bucket]; x != NULL; x = x->nextPtr) {
 		aEnd = (x + 1)->firstArc;
 		for (a = x->firstArc; a != aEnd; a++) {
@@ -2397,7 +2403,7 @@ template<bool sTree>
 inline void IBFSGraph<captype, tcaptype, flowtype>::pushRelabelDischarge(Node *x)
 {
 	Node *y;
-	ssize_t minLabel;
+	int64_t minLabel;
 	captype push;
 	Arc *aEnd = (x + 1)->firstArc;
 	Arc *a;
@@ -2466,7 +2472,7 @@ inline void IBFSGraph<captype, tcaptype, flowtype>::pushRelabelDischarge(Node *x
 		if (x->excess == 0) break;
 
 		// relabel
-		minLabel = (sTree ? ((long long signed)(numNodes)-1) : (-(long long signed)(numNodes)+1));
+		minLabel = (sTree ? ((int64_t )(numNodes)-1) : (-(int64_t )(numNodes)+1));
 		x->parent = NULL;
 		for (a = x->firstArc; a != aEnd; a++)
 		{
@@ -2491,7 +2497,7 @@ inline void IBFSGraph<captype, tcaptype, flowtype>::pushRelabelDischarge(Node *x
 	}
 	if (x->label != 0) prNodeBuckets.add<sTree>(x);
 }
-template class IBFSGraph<long long, long long, long long>;
+template class IBFSGraph<int64_t, int64_t, int64_t>;
 #endif
 
 

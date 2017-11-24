@@ -51,18 +51,8 @@ TS_Logger& TS_Logger::operator<<(const string& msg)
 
 	return *this;
 }
-TS_Logger & TS_Logger::operator<<(const char & msg)
-{
-	if (process_event)
-	{
-		std::cout << msg << std::flush;
-		log_file << msg;
-		log_file.flush();
-	}
 
-	return *this;
-}
-TS_Logger& TS_Logger::operator<<(const unsigned int& msg)
+TS_Logger& TS_Logger::operator<<(const int8_t& msg)
 {
 	if (process_event)
 	{
@@ -72,7 +62,7 @@ TS_Logger& TS_Logger::operator<<(const unsigned int& msg)
 	}
 	return *this;
 }
-TS_Logger & TS_Logger::operator<<(const unsigned long int & msg)
+TS_Logger& TS_Logger::operator<<(const uint8_t& msg)
 {
 	if (process_event)
 	{
@@ -82,7 +72,8 @@ TS_Logger & TS_Logger::operator<<(const unsigned long int & msg)
 	}
 	return *this;
 }
-TS_Logger& TS_Logger::operator<<(const int& msg)
+
+TS_Logger& TS_Logger::operator<<(const int16_t& msg)
 {
 	if (process_event)
 	{
@@ -92,7 +83,47 @@ TS_Logger& TS_Logger::operator<<(const int& msg)
 	}
 	return *this;
 }
-TS_Logger & TS_Logger::operator<<(const long int &msg)
+TS_Logger& TS_Logger::operator<<(const uint16_t& msg)
+{
+	if (process_event)
+	{
+		std::cout << std::to_string(msg) << std::flush;
+		log_file << std::to_string(msg);
+		log_file.flush();
+	}
+	return *this;
+}
+TS_Logger& TS_Logger::operator<<(const int32_t& msg)
+{
+	if (process_event)
+	{
+		std::cout << std::to_string(msg) << std::flush;
+		log_file << std::to_string(msg);
+		log_file.flush();
+	}
+	return *this;
+}
+TS_Logger & TS_Logger::operator<<(const uint32_t & msg)
+{
+	if (process_event)
+	{
+		std::cout << std::to_string(msg) << std::flush;
+		log_file << std::to_string(msg);
+		log_file.flush();
+	}
+	return *this;
+}
+TS_Logger & TS_Logger::operator<<(const int64_t &msg)
+{
+	if (process_event)
+	{
+		std::cout << std::to_string(msg) << std::flush;
+		log_file << std::to_string(msg);
+		log_file.flush();
+	}
+	return *this;
+}
+TS_Logger & TS_Logger::operator<<(const uint64_t &msg)
 {
 	if (process_event)
 	{
@@ -112,7 +143,7 @@ TS_Logger& TS_Logger::operator<<(const double& msg)
 	}
 	return *this;
 }
-TS_Logger & TS_Logger::operator<<(const long long &msg)
+TS_Logger& TS_Logger::operator<<(const float& msg)
 {
 	if (process_event)
 	{
@@ -122,6 +153,7 @@ TS_Logger & TS_Logger::operator<<(const long long &msg)
 	}
 	return *this;
 }
+
 TS_Logger& TS_Logger::operator<<(const EndLog& obj)
 {
 	cout_mtx.unlock();

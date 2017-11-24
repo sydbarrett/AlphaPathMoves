@@ -18,3 +18,4 @@
 *.pdb
 unscramble_pm_logfile.*
 build\
+build/

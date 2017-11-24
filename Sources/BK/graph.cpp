@@ -6,7 +6,7 @@
 #include <iostream>
 
 template <typename captype, typename tcaptype, typename flowtype> 
-Graph<captype, tcaptype, flowtype>::Graph(size_t node_num_max, size_t edge_num_max, void(*err_function)(char *))
+Graph<captype, tcaptype, flowtype>::Graph(uint64_t node_num_max, uint64_t edge_num_max, void(*err_function)(char *))
 	: node_num(0),
 	  nodeptr_block(NULL),
 	  error_function(err_function)
@@ -57,11 +57,11 @@ template <typename captype, typename tcaptype, typename flowtype>
 }
 
 template <typename captype, typename tcaptype, typename flowtype> 
-	void Graph<captype,tcaptype,flowtype>::reallocate_nodes(size_t num)
+	void Graph<captype,tcaptype,flowtype>::reallocate_nodes(uint64_t num)
 {
 	printf("WARNING: GC is Reallocating nodes\n");
 
-	size_t node_num_max = (size_t)(node_max - nodes);
+	uint64_t node_num_max = (uint64_t)(node_max - nodes);
 	node* nodes_old = nodes;
 
 	node_num_max += node_num_max / 2;
@@ -85,8 +85,8 @@ template <typename captype, typename tcaptype, typename flowtype>
 template <typename captype, typename tcaptype, typename flowtype> 
 	void Graph<captype,tcaptype,flowtype>::reallocate_arcs()
 {
-	size_t arc_num_max = (size_t )(arc_max - arcs);
-	size_t arc_num = (size_t )(arc_last - arcs);
+	uint64_t arc_num_max = (uint64_t )(arc_max - arcs);
+	uint64_t arc_num = (uint64_t )(arc_last - arcs);
 	arc* arcs_old = arcs;
 	printf("WARNING: GC is Reallocating arcs\n");
 	arc_num_max += arc_num_max / 2; if (arc_num_max & 1) arc_num_max ++;

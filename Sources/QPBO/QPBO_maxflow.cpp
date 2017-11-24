@@ -24,7 +24,7 @@
 
 
 
-#define INFINITE_D ((__int64)(((unsigned)-1)/2))		/* infinite distance to the terminal */
+#define INFINITE_D ((int64_t)(((unsigned)-1)/2))		/* infinite distance to the terminal */
 
 /***********************************************************************/
 
@@ -341,7 +341,7 @@ template <typename REAL>
 {
 	Node *j;
 	Arc *a0, *a0_min = NULL, *a;
-	__int64 d, d_min = INFINITE_D;
+	int64_t d, d_min = INFINITE_D;
 
 	/* trying to find a new parent */
 	for (a0=i->first; a0; a0=a0->next)
@@ -418,7 +418,7 @@ template <typename REAL>
 {
 	Node *j;
 	Arc *a0, *a0_min = NULL, *a;
-	__int64 d, d_min = INFINITE_D;
+	int64_t d, d_min = INFINITE_D;
 
 	/* trying to find a new parent */
 	for (a0=i->first; a0; a0=a0->next)
@@ -642,8 +642,8 @@ template <typename REAL>
 {
 	Node *i;
 	Arc *a;
-	__int64 r;
-	__int64 num1 = 0, num2 = 0;
+	int64_t r;
+	int64_t num1 = 0, num2 = 0;
 
 	// test whether all nodes i with i->next!=NULL are indeed in the queue
 	for (i=nodes[0]; i<node_last[stage]; i++)

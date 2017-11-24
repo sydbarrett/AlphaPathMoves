@@ -12,7 +12,7 @@
 #define ORPHAN   ( (arc *) 2 )		/* orphan */
 
 
-#define INFINITE_D ((__int32)(((unsigned __int32)-1)/2))		/* infinite distance to the terminal */
+#define INFINITE_D ((int32_t)(((uint32_t)-1)/2))		/* infinite distance to the terminal */
 
 /***********************************************************************/
 
@@ -317,7 +317,7 @@ template <typename captype, typename tcaptype, typename flowtype>
 {
 	node *j;
 	arc *a0, *a0_min = NULL, *a;
-	__int64 d, d_min = INFINITE_D;
+	int64_t d, d_min = INFINITE_D;
 
 	/* trying to find a new parent */
 	for (a0=i->first; a0; a0=a0->next)
@@ -394,7 +394,7 @@ template <typename captype, typename tcaptype, typename flowtype>
 {
 	node *j;
 	arc *a0, *a0_min = NULL, *a;
-	__int64 d, d_min = INFINITE_D;
+	int64_t d, d_min = INFINITE_D;
 
 	/* trying to find a new parent */
 	for (a0=i->first; a0; a0=a0->next)

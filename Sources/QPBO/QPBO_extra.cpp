@@ -29,7 +29,7 @@
 /////////////////////////////////////////////////////////////////////////
 
 template <typename REAL>
-void QPBO<REAL>::ComputeRandomPermutation(__int64 N, __int64* permutation)
+void QPBO<REAL>::ComputeRandomPermutation(int64_t N, int64_t* permutation)
 {
 	int i, j, k;
 	for (i=0; i<N; i++)
@@ -38,20 +38,20 @@ void QPBO<REAL>::ComputeRandomPermutation(__int64 N, __int64* permutation)
 	}
 	for (i=0; i<N-1; i++)
 	{
-		j = i + (__int64)((rand() / (1.0 + (double)RAND_MAX))*(N - i));
+		j = i + (int64_t)((rand() / (1.0 + (double)RAND_MAX))*(N - i));
 		if (j>N-1) j = N-1;
 		k = permutation[j]; permutation[j] = permutation[i]; permutation[i] = k;
 	}
 }
 
 template <typename REAL>
-void QPBO<REAL>::MergeMappings(__int64 nodeNum0, __int64* mapping0, __int64* mapping1)
+void QPBO<REAL>::MergeMappings(int64_t nodeNum0, int64_t* mapping0, int64_t* mapping1)
 {
 	int i;
 	for (i=0; i<nodeNum0; i++)
 	{
-		__int64 j = mapping0[i] / 2;
-		__int64 k = mapping1[j] / 2;
+		int64_t j = mapping0[i] / 2;
+		int64_t k = mapping1[j] / 2;
 		mapping0[i] = 2*k + ((mapping0[i] + mapping1[j]) % 2);
 	}
 }
@@ -69,7 +69,7 @@ void QPBO<REAL>::MergeMappings(__int64 nodeNum0, __int64* mapping0, __int64* map
 
 
 template <typename REAL>
-inline void QPBO<REAL>::FixNode(Node* i, __int64 x)
+inline void QPBO<REAL>::FixNode(Node* i, int64_t x)
 {
 	Node* _i[2] = { i, GetMate0(i) };
 	Arc* a;
@@ -99,7 +99,7 @@ inline void QPBO<REAL>::FixNode(Node* i, __int64 x)
 }
 
 template <typename REAL>
-inline void QPBO<REAL>::ContractNodes(Node* i, Node* j, __int64 swap)
+inline void QPBO<REAL>::ContractNodes(Node* i, Node* j, int64_t swap)
 {
 	code_assert(IsNode0(i) && IsNode0(j) && swap>=0 && swap<=1);
 
@@ -107,7 +107,7 @@ inline void QPBO<REAL>::ContractNodes(Node* i, Node* j, __int64 swap)
 	Node* _j[2];
 	Arc* a;
 	Arc* a_selfloop = NULL;
-	__int64 x;
+	int64_t x;
 
 	if (swap == 0) { _j[0] = j; _j[1] = GetMate0(j); }
 	else           { _j[1] = j; _j[0] = GetMate0(j); }
@@ -153,13 +153,13 @@ inline void QPBO<REAL>::ContractNodes(Node* i, Node* j, __int64 swap)
 }
 
 template <typename REAL>
-__int64 QPBO<REAL>::MergeParallelEdges(Arc* a1, Arc* a2)
+int64_t QPBO<REAL>::MergeParallelEdges(Arc* a1, Arc* a2)
 {
 	code_assert(a1->sister->head == a2->sister->head && IsNode0(a1->sister->head));
 	code_assert(a1->head == a2->head || a1->head == GetMate(a2->head));
 
 	REAL delta;
-	__int64 x;
+	int64_t x;
 	Node* _i[2];
 	Node* _j[2];
 	Arc* _a1[2] = { a1, GetMate(a1) };
@@ -272,7 +272,7 @@ template <typename REAL>
 }
 
 template <typename REAL>
-inline void QPBO<REAL>::AddDirectedConstraint(Node* i, Node* j, __int64 xi, __int64 xj)
+inline void QPBO<REAL>::AddDirectedConstraint(Node* i, Node* j, int64_t xi, int64_t xj)
 {
 	code_assert(first_free && IsNode0(i) && IsNode0(j) && i!=j);
 
@@ -389,7 +389,7 @@ template <typename REAL>
 }
 */
 template <typename REAL>
-inline bool QPBO<REAL>::AddDirectedConstraint0(Arc* a, __int64 xi, __int64 xj)
+inline bool QPBO<REAL>::AddDirectedConstraint0(Arc* a, int64_t xi, int64_t xj)
 {
 	Node* i = a->sister->head;
 	Node* j = a->head;
@@ -469,7 +469,7 @@ inline bool QPBO<REAL>::AddDirectedConstraint0(Arc* a, __int64 xi, __int64 xj)
 }
 
 template <typename REAL>
-inline bool QPBO<REAL>::AddDirectedConstraint1(Arc* a, __int64 xi, __int64 xj)
+inline bool QPBO<REAL>::AddDirectedConstraint1(Arc* a, int64_t xi, int64_t xj)
 {
 	Node* j = a->head;
 	Node* _j[2];
@@ -503,13 +503,13 @@ inline bool QPBO<REAL>::AddDirectedConstraint1(Arc* a, __int64 xi, __int64 xj)
 }
 
 template <typename REAL>
-void QPBO<REAL>::AllocateNewEnergy(__int64* mapping)
+void QPBO<REAL>::AllocateNewEnergy(int64_t* mapping)
 {
-	__int64 i_index, j_index;
-	__int64 nodeNumOld = GetNodeNum();
-	__int64 nodeNumNew = 1;
-	__int64 edgeNumOld = GetMaxEdgeNum();
-	__int64 e;
+	int64_t i_index, j_index;
+	int64_t nodeNumOld = GetNodeNum();
+	int64_t nodeNumNew = 1;
+	int64_t edgeNumOld = GetMaxEdgeNum();
+	int64_t e;
 	Node* i;
 
 	////////////////////////////////////////////////////////////////
@@ -572,8 +572,8 @@ void QPBO<REAL>::AllocateNewEnergy(__int64* mapping)
 	for (i_index=0; i_index<nodeNumOld; i_index++)
 	if (mapping[i_index] < 0)
 	{
-		__int64 y[2];
-		__int64 x = 0;
+		int64_t y[2];
+		int64_t x = 0;
 		j_index = i_index;
 		do
 		{
@@ -587,7 +587,7 @@ void QPBO<REAL>::AllocateNewEnergy(__int64* mapping)
 		j_index = i_index;
 		do
 		{
-			__int64 m_old = mapping[j_index];
+			int64_t m_old = mapping[j_index];
 			mapping[j_index] = y[x];
 			x = (x - m_old) % 2;
 			j_index = (-m_old)/2 - 1;
@@ -595,7 +595,7 @@ void QPBO<REAL>::AllocateNewEnergy(__int64* mapping)
 	}
 
 	////////////////////////////////////////////////////////////////
-	__int64 edgeNumNew = 0;
+	int64_t edgeNumNew = 0;
 	for (e=0; e<edgeNumOld; e++)
 	{
 		if ( arcs[0][2*e].sister )
@@ -612,13 +612,13 @@ void QPBO<REAL>::AllocateNewEnergy(__int64* mapping)
 				a = &arcs[1][2*e+1];
 				a_mate = &arcs[0][2*e+1];
 			}
-			i_index = mapping[(__int64)(a->sister->head - nodes[0])] / 2;
+			i_index = mapping[(int64_t)(a->sister->head - nodes[0])] / 2;
 			code_assert(i_index > 0 && i_index < nodeNumNew);
 
 			first_free = &arcs[0][2*edgeNumNew++];
 			if (IsNode0(a->head))
 			{
-				j_index = mapping[(__int64)(a->head - nodes[0])] / 2;
+				j_index = mapping[(int64_t)(a->head - nodes[0])] / 2;
 				code_assert(j_index > 0 && j_index < nodeNumNew);
 				AddPairwiseTerm(i_index, j_index, 
 					0, a->r_cap+a_mate->r_cap, a->sister->r_cap+a_mate->sister->r_cap, 0);
@@ -634,19 +634,19 @@ void QPBO<REAL>::AllocateNewEnergy(__int64* mapping)
 	}
 
 	first_free = &arcs[0][2*edgeNumNew];
-	memset(first_free, 0, (__int64)((char*)arc_max[0] - (char*)first_free));
+	memset(first_free, 0, (int64_t)((char*)arc_max[0] - (char*)first_free));
 	InitFreeList();
 }
 
-const __int64 LIST_NUM = 4;
+const int64_t LIST_NUM = 4;
 struct List // contains LIST_NUM lists containing integers 0,1,...,num-1. In the beginning, each integer is in list 1.
 {
-	List(__int64 _num, __int64* order)
+	List(int64_t _num, int64_t* order)
 		: num(_num)
 	{
-		__int64 i;
-		prev = new __int64[num + LIST_NUM]; prev += LIST_NUM;
-		next = new __int64[num + LIST_NUM]; next += LIST_NUM;
+		int64_t i;
+		prev = new int64_t[num + LIST_NUM]; prev += LIST_NUM;
+		next = new int64_t[num + LIST_NUM]; next += LIST_NUM;
 		if (order)
 		{
 			for (i=0; i<num; i++)
@@ -681,12 +681,12 @@ struct List // contains LIST_NUM lists containing integers 0,1,...,num-1. In the
 		delete [] (next - LIST_NUM);
 	}
 	// i must be in the list
-	void Remove(__int64 i)
+	void Remove(int64_t i)
 	{
 		next[prev[i]] = next[i];
 		prev[next[i]] = prev[i];
 	}
-	void Move(__int64 i, __int64 r_to) // moves node i to list r_to
+	void Move(int64_t i, int64_t r_to) // moves node i to list r_to
 	{
 		code_assert (r_to>=1 && r_to<=LIST_NUM);
 		Remove(i);
@@ -695,7 +695,7 @@ struct List // contains LIST_NUM lists containing integers 0,1,...,num-1. In the
 		next[prev[-r_to]] = i;
 		prev[-r_to] = i;
 	}
-	void MoveList(__int64 r_from, __int64 r_to) // append list r_from to list r_to. List r_from becomes empty.
+	void MoveList(int64_t r_from, int64_t r_to) // append list r_from to list r_to. List r_from becomes empty.
 	{
 		code_assert (r_from>=1 && r_from<=LIST_NUM && r_to>=1 && r_to<=LIST_NUM && r_from!=r_to);
 		if (next[-r_from] < 0) return; // list r_from is empty
@@ -708,39 +708,39 @@ struct List // contains LIST_NUM lists containing integers 0,1,...,num-1. In the
 	// i must be in the list
 	// (or -r, in which case the first element of list r is returned). 
 	// Returns -1 if no more elements.
-	__int64 GetNext(__int64 i) { return next[i]; }
+	int64_t GetNext(int64_t i) { return next[i]; }
 
 private:
-	__int64 num;
-	__int64* next;
-	__int64* prev;
+	int64_t num;
+	int64_t* next;
+	int64_t* prev;
 };
 
 template <typename REAL>
-void QPBO<REAL>::SetMaxEdgeNum(__int64 num)
+void QPBO<REAL>::SetMaxEdgeNum(int64_t num)
 {
 	if (num > GetMaxEdgeNum()) reallocate_arcs(2*num);
 }
 
 template <typename REAL>
-bool QPBO<REAL>::Probe(__int64* mapping)
+bool QPBO<REAL>::Probe(int64_t* mapping)
 {
-	__int64 i_index, i_index_next, j_index;
+	int64_t i_index, i_index_next, j_index;
 	Node* i;
 	Node* j;
 	Node* _i[2];
 	Arc* a;
 	Arc* a_next;
-	__int64 x;
+	int64_t x;
 	Node** ptr;
 	bool is_enough_memory = true;
-	__int64 unlabeled_num;
+	int64_t unlabeled_num;
 
 	if (probe_options.order_array) probe_options.order_seed = 0;
 	if (probe_options.order_seed != 0)
 	{
 		srand((unsigned int)probe_options.order_seed);
-		probe_options.order_array = new __int64[GetNodeNum()];
+		probe_options.order_array = new int64_t[GetNodeNum()];
 		ComputeRandomPermutation(GetNodeNum(), probe_options.order_array);
 	}
 	List list(GetNodeNum(), probe_options.order_array);
@@ -749,13 +749,13 @@ bool QPBO<REAL>::Probe(__int64* mapping)
 		delete [] probe_options.order_array;
 	}
 
-	if (node_last[0] == node_max[0]) reallocate_nodes((__int64)(node_last[0] - nodes[0]) + 1);
+	if (node_last[0] == node_max[0]) reallocate_nodes((int64_t)(node_last[0] - nodes[0]) + 1);
 
 	all_edges_submodular = false;
 	Solve();
 
-	__int64 MASK_CURRENT = 1;
-	__int64 MASK_NEXT = 2;
+	int64_t MASK_CURRENT = 1;
+	int64_t MASK_NEXT = 2;
 
 	unlabeled_num = 0;
 	for (i=nodes[0], i_index=0; i<node_last[0]; i++, i_index++)
@@ -804,7 +804,7 @@ bool QPBO<REAL>::Probe(__int64* mapping)
 		bool success = true;
 
 		// Try fixing nodes to 0 and 1
-		__int64 current_list = (list.GetNext(-1) >= 0) ? 1 : 2;
+		int64_t current_list = (list.GetNext(-1) >= 0) ? 1 : 2;
 		for (i_index=list.GetNext(-current_list) ; i_index>=0; i_index=i_index_next)
 		{
 			i_index_next = list.GetNext(i_index);
@@ -864,7 +864,7 @@ bool QPBO<REAL>::Probe(__int64* mapping)
 
 				if (i == j || j->label_after_fix0 < 0 || j->label_after_fix1 < 0) continue;
 
-				j_index = (__int64)(j - nodes[0]);
+				j_index = (int64_t)(j - nodes[0]);
 
 				is_changed = true;
 				if (j->label_after_fix0 == j->label_after_fix1)
@@ -891,26 +891,26 @@ bool QPBO<REAL>::Probe(__int64* mapping)
 				// merge parallel edges incident to i
 				for (a=i->first; a; a=a->next) // mark neighbor nodes
 				{
-					j_index = (__int64)(a->head - nodes[IsNode0(a->head) ? 0 : 1]);
-					mapping[j_index] = (__int64)(a - arcs[0]);
+					j_index = (int64_t)(a->head - nodes[IsNode0(a->head) ? 0 : 1]);
+					mapping[j_index] = (int64_t)(a - arcs[0]);
 				}
 				for (a=i->first; a; a=a_next)
 				{
 					a_next = a->next;
-					j_index = (__int64)(a->head - nodes[IsNode0(a->head) ? 0 : 1]);
+					j_index = (int64_t)(a->head - nodes[IsNode0(a->head) ? 0 : 1]);
 					Arc* a2 = &arcs[0][mapping[j_index]];
 					if (a2 == a) continue;
 					mark_node(a->head);
 					mark_node(GetMate(a->head));
 					if (MergeParallelEdges(a2, a)==0) 
 					{
-						mapping[j_index] = (__int64)(a - arcs[0]);
+						mapping[j_index] = (int64_t)(a - arcs[0]);
 						a_next = a->next;
 					}
 				}
 				for (a=i->first; a; a=a->next)
 				{
-					j_index = (__int64)(a->head - nodes[IsNode0(a->head) ? 0 : 1]);
+					j_index = (int64_t)(a->head - nodes[IsNode0(a->head) ? 0 : 1]);
 					mapping[j_index] = -1;
 				}
 			}
@@ -919,7 +919,7 @@ bool QPBO<REAL>::Probe(__int64* mapping)
 			for (a=i->first; a; a=a->next)
 			{
 				j = a->head;
-				__int64 label[2];
+				int64_t label[2];
 				if (IsNode0(j))
 				{
 					label[0] = j->label_after_fix0;
@@ -944,7 +944,7 @@ bool QPBO<REAL>::Probe(__int64* mapping)
 			for (a=i->first; a; a=a->next)
 			{
 				j = a->head;
-				__int64 label[2];
+				int64_t label[2];
 				if (IsNode0(j))
 				{
 					label[0] = j->label_after_fix0; j->label_after_fix0 = -1;
@@ -970,7 +970,7 @@ bool QPBO<REAL>::Probe(__int64* mapping)
 				for (ptr=changed_list->ScanFirst(); ptr; ptr=changed_list->ScanNext())
 				{
 					j = *ptr;
-					__int64 x, y;
+					int64_t x, y;
 
 					if (j->is_removed) continue;
 					if (i == j) continue;
@@ -1041,7 +1041,7 @@ bool QPBO<REAL>::Probe(__int64* mapping)
 
 				if (j->label >= 0)
 				{
-					j_index = (__int64)(j - nodes[0]);
+					j_index = (int64_t)(j - nodes[0]);
 					FixNode(j, j->label);
 					mapping[j_index] = j->label;
 					j->is_removed = 1;
@@ -1084,8 +1084,8 @@ bool QPBO<REAL>::Probe(__int64* mapping)
 		}
 		else
 		{
-			__int64 MASK_TMP = MASK_CURRENT; MASK_CURRENT = MASK_NEXT; MASK_NEXT = MASK_TMP;
-			__int64 r;
+			int64_t MASK_TMP = MASK_CURRENT; MASK_CURRENT = MASK_NEXT; MASK_NEXT = MASK_TMP;
+			int64_t r;
 			for (r=1; r<probe_options.dilation; r++)
 			{
 				for (i_index=list.GetNext(-3); i_index>=0; i_index=list.GetNext(i_index))
@@ -1098,7 +1098,7 @@ bool QPBO<REAL>::Probe(__int64* mapping)
 						if (!(j->list_flag & MASK_CURRENT))
 						{
 							j->list_flag = MASK_CURRENT;
-							j_index = (__int64)(j - nodes[0]);
+							j_index = (int64_t)(j - nodes[0]);
 							code_assert(j_index != i_index_next);
 							list.Move(j_index, 4);
 						}
@@ -1120,9 +1120,9 @@ bool QPBO<REAL>::Probe(__int64* mapping)
 
 
 template <typename REAL>
-void QPBO<REAL>::Probe(__int64* mapping, ProbeOptions& options)
+void QPBO<REAL>::Probe(int64_t* mapping, ProbeOptions& options)
 {
-	__int64 nodeNum0 = GetNodeNum();
+	int64_t nodeNum0 = GetNodeNum();
 	bool is_enough_memory;
 	user_terminated = false;
 
@@ -1137,11 +1137,11 @@ void QPBO<REAL>::Probe(__int64* mapping, ProbeOptions& options)
 		bool success = true;
 		if ( probe_options.weak_persistencies )
 		{
-			__int64 i;
+			int64_t i;
 			ComputeWeakPersistencies();
 			for (i=1; i<GetNodeNum(); i++)
 			{
-				__int64 ki = GetLabel(i);
+				int64_t ki = GetLabel(i);
 				if (ki >= 0)
 				{
 					AddUnaryTerm(i, 0, (REAL)(1-2*ki));
@@ -1159,7 +1159,7 @@ void QPBO<REAL>::Probe(__int64* mapping, ProbeOptions& options)
 			if (success) break;
 		}
 
-		__int64* mapping1 = new __int64[GetNodeNum()];
+		int64_t* mapping1 = new int64_t[GetNodeNum()];
 		is_enough_memory = Probe(mapping1);
 		MergeMappings(nodeNum0, mapping, mapping1);
 		delete [] mapping1;
@@ -1167,9 +1167,9 @@ void QPBO<REAL>::Probe(__int64* mapping, ProbeOptions& options)
 }
 
 template <typename REAL>
-bool QPBO<REAL>::Improve(__int64 N, __int64* order_array, __int64* fixed_nodes)
+bool QPBO<REAL>::Improve(int64_t N, int64_t* order_array, int64_t* fixed_nodes)
 {
-	__int64 p, i_index;
+	int64_t p, i_index;
 	Node* i;
 	Node* _i[2];
 	FixNodeInfo* ptr;
@@ -1216,11 +1216,11 @@ bool QPBO<REAL>::Improve(__int64 N, __int64* order_array, __int64* fixed_nodes)
 		maxflow(true);
 	}
 
-	if (fixed_nodes) memset(fixed_nodes, 0, GetNodeNum()*sizeof(__int64));
+	if (fixed_nodes) memset(fixed_nodes, 0, GetNodeNum()*sizeof(int64_t));
 	for (ptr=fix_node_info_list->ScanFirst(); ptr; ptr=fix_node_info_list->ScanNext())
 	{
 		AddUnaryTerm(ptr->i, 0, -ptr->INFTY);
-		if (fixed_nodes) fixed_nodes[(__int64)(ptr->i - nodes[0])] = 1;
+		if (fixed_nodes) fixed_nodes[(int64_t)(ptr->i - nodes[0])] = 1;
 	}
 	fix_node_info_list->Reset();
 
@@ -1229,10 +1229,10 @@ bool QPBO<REAL>::Improve(__int64 N, __int64* order_array, __int64* fixed_nodes)
 	{
 		i->label = what_segment(i);
 		if (i->label == what_segment(GetMate0(i))) i->label = i->user_label;
-		else if (i->label != (__int64)i->user_label)
+		else if (i->label != (int64_t)i->user_label)
 		{
 			success = true;
-			i->user_label = (unsigned __int64)i->label;
+			i->user_label = (uint64_t)i->label;
 		}
 	}
 
@@ -1242,7 +1242,7 @@ bool QPBO<REAL>::Improve(__int64 N, __int64* order_array, __int64* fixed_nodes)
 template <typename REAL>
 	bool QPBO<REAL>::Improve()
 {
-		__int64* permutation = new __int64[node_num];
+		int64_t* permutation = new int64_t[node_num];
 	ComputeRandomPermutation(node_num, permutation);
 	bool success = Improve(node_num, permutation);
 	delete [] permutation;

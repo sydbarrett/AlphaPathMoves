@@ -9,14 +9,14 @@
 #include "TS_Logger.h"
 
 //#define MFS_DEBUG
-template class IBFSGraph<long long, long long, long long>;
+template class IBFSGraph<int64_t, int64_t, int64_t>;
 template <class nweightType, class tweightType, class flowtype> class MaxflowSolver
 {
 public :
 	enum class SolverName { BK, IBFS, QPBO_SLVR };
 private:
 	SolverName name; //1 BK graph cut, 2 IBFS, 3 QPBO
-	size_t n_edges, n_nodes;
+	uint64_t n_edges, n_nodes;
 	double maxflow_runtime, construction_runtime, total_runtime;
 	// BK library
 	Graph<nweightType, tweightType, flowtype> * bk_gc;
@@ -31,7 +31,7 @@ private:
 	flowtype QPBO_solver(BasicGraph<nweightType, tweightType> *, char *);
 	int run_id;
 public:
-	MaxflowSolver(size_t, size_t, SolverName); //those are only estiamte the actual # of nodes/edges in the basicgraph could be bigger.
+	MaxflowSolver(uint64_t, uint64_t, SolverName); //those are only estiamte the actual # of nodes/edges in the basicgraph could be bigger.
 	static SolverName getDefaultSolver();
 	void getRuntimes(double &, double &, double&);
 	~MaxflowSolver();
@@ -44,16 +44,16 @@ flowtype  MaxflowSolver<nweightType, tweightType, flowtype>::computEnergy(BasicG
 {
 	BasicGraph<nweightType, tweightType>::t_links_struct tlinks = graph->get_tlinks();
 	BasicGraph<nweightType, tweightType>::n_links_struct nlinks = graph->get_nlinks();
-	size_t n_nodes = graph->getNumberOfNodes();
+	uint64_t n_nodes = graph->getNumberOfNodes();
 
 	int s = 0, t=1;
 	flowtype unary_energy = 0, pairwise_energy = 0;
-	for (size_t link_id = 0; link_id < tlinks.n_tlinks; ++link_id)
+	for (uint64_t link_id = 0; link_id < tlinks.n_tlinks; ++link_id)
 		if (labeling[tlinks.node_ids[link_id]] == t)
 			unary_energy += tlinks.weights[link_id * 2 + 0];
 		else
 			unary_energy += tlinks.weights[link_id * 2 + 1];
-	for (size_t offset = 0; offset < (nlinks.n_nlinks * 2); offset += 2)
+	for (uint64_t offset = 0; offset < (nlinks.n_nlinks * 2); offset += 2)
 	{
 		if (labeling[nlinks.edge_nodes[offset + 0]] == s && labeling[nlinks.edge_nodes[offset + 1]] == t)
 			pairwise_energy += nlinks.weights[offset + 0];
@@ -78,7 +78,7 @@ typename MaxflowSolver<nweightType, tweightType, flowtype>::SolverName MaxflowSo
 }
 
 template <class nweightType, class tweightType, class flowtype>
-MaxflowSolver<nweightType, tweightType, flowtype>::MaxflowSolver(size_t in_n_nodes, size_t in_n_edges, typename MaxflowSolver<nweightType, tweightType, flowtype>::SolverName name)
+MaxflowSolver<nweightType, tweightType, flowtype>::MaxflowSolver(uint64_t in_n_nodes, uint64_t in_n_edges, typename MaxflowSolver<nweightType, tweightType, flowtype>::SolverName name)
 {
 	this->run_id = 1;
 	this->construction_runtime = 0;
@@ -163,15 +163,15 @@ typename flowtype MaxflowSolver<nweightType, tweightType, flowtype>::BK_solver(B
 	
 	BasicGraph<nweightType, tweightType>::t_links_struct tlinks = graph->get_tlinks();
 	BasicGraph<nweightType, tweightType>::n_links_struct nlinks = graph->get_nlinks();
-	size_t n_nodes = graph->getNumberOfNodes();
+	uint64_t n_nodes = graph->getNumberOfNodes();
 
 	clock_t const_start = clock();
 	bk_gc->add_node(n_nodes);
 	//set t_link weights 
-	for (size_t link_id = 0; link_id < tlinks.n_tlinks; ++link_id)
+	for (uint64_t link_id = 0; link_id < tlinks.n_tlinks; ++link_id)
 		bk_gc->add_tweights(tlinks.node_ids[link_id], tlinks.weights[link_id * 2 + 0], tlinks.weights[link_id * 2 + 1]);
 	//set n_link weights 
-	for (size_t offset = 0; offset < (nlinks.n_nlinks * 2); offset += 2)
+	for (uint64_t offset = 0; offset < (nlinks.n_nlinks * 2); offset += 2)
 		bk_gc->add_edge(nlinks.edge_nodes[offset + 0], nlinks.edge_nodes[offset + 1], nlinks.weights[offset + 0], nlinks.weights[offset + 1]);
 	clock_t const_end = clock();
 
@@ -182,13 +182,13 @@ typename flowtype MaxflowSolver<nweightType, tweightType, flowtype>::BK_solver(B
 
 	//get labeling from solver
 	memset(labeling, 0, sizeof(char)*n_nodes);
-	for (size_t node_id = 0; node_id < n_nodes; ++node_id)
+	for (uint64_t node_id = 0; node_id < n_nodes; ++node_id)
 		labeling[node_id] = bk_gc->what_segment(node_id);
 
 	#ifdef MFS_DEBUG
-	ssize_t dims[2]; dims[0] = n_nodes; dims[1] = 1;
+	int64_t dims[2]; dims[0] = n_nodes; dims[1] = 1;
 	int *tmp_labeling = new int[n_nodes];
-	for (size_t node_id = 0; node_id < n_nodes; ++node_id)
+	for (uint64_t node_id = 0; node_id < n_nodes; ++node_id)
 		tmp_labeling[node_id]=labeling[node_id];
 	Utils::ArrayInOut<int> label_writer(tmp_labeling, dims, 2);
 	label_writer.save("E:\\hossam\\temp\\bk\\labeling_" + std::to_string(run_id) + ".dat");
@@ -218,15 +218,15 @@ typename flowtype MaxflowSolver<nweightType, tweightType, flowtype>::IBFS_solver
 
 	BasicGraph<nweightType, tweightType>::t_links_struct tlinks = graph->get_tlinks();
 	BasicGraph<nweightType, tweightType>::n_links_struct nlinks = graph->get_nlinks();
-	size_t n_nodes = graph->getNumberOfNodes();
+	uint64_t n_nodes = graph->getNumberOfNodes();
 
 	clock_t const_start = clock();
 	// create nodes and set t_link weights
-	for (size_t link_id = 0; link_id < tlinks.n_tlinks; ++link_id)
+	for (uint64_t link_id = 0; link_id < tlinks.n_tlinks; ++link_id)
 		ibfs_gc->addNode(tlinks.node_ids[link_id], tlinks.weights[link_id * 2 + 0], tlinks.weights[link_id * 2 + 1]);
 
 	// set n_link weights
-	for (size_t offset = 0; offset < (nlinks.n_nlinks * 2); offset += 2)
+	for (uint64_t offset = 0; offset < (nlinks.n_nlinks * 2); offset += 2)
 		ibfs_gc->addEdge(nlinks.edge_nodes[offset + 0], nlinks.edge_nodes[offset + 1], nlinks.weights[offset + 0], nlinks.weights[offset + 1]);
 	clock_t const_end = clock();
 
@@ -238,19 +238,19 @@ typename flowtype MaxflowSolver<nweightType, tweightType, flowtype>::IBFS_solver
 	// get labelling from solver
 	memset(labeling, 0, sizeof(char)*n_nodes);
 	
-	for (size_t node_id = 0; node_id < n_nodes; ++node_id)
+	for (uint64_t node_id = 0; node_id < n_nodes; ++node_id)
 		labeling[node_id] = 1-ibfs_gc->isNodeOnSrcSide(node_id,1);
-	long long  local_maxflow_compute = computEnergy(graph, labeling);
+	int64_t  local_maxflow_compute = computEnergy(graph, labeling);
 	//bgn_log << LogType::INFO_LEVEL1 << local_maxflow_compute << "\n" << end_log;
 
 	if (local_maxflow_compute != maxflow)
-		for (size_t node_id = 0; node_id < n_nodes; ++node_id)
+		for (uint64_t node_id = 0; node_id < n_nodes; ++node_id)
 			labeling[node_id] = 1-ibfs_gc->isNodeOnSrcSide(node_id,0);
 
 	#ifdef MFS_DEBUG
-	ssize_t dims[2]; dims[0] = n_nodes; dims[1] = 1;
+	int64_t dims[2]; dims[0] = n_nodes; dims[1] = 1;
 	int *tmp_labeling = new int[n_nodes];
-	for (size_t node_id = 0; node_id < n_nodes; ++node_id)
+	for (uint64_t node_id = 0; node_id < n_nodes; ++node_id)
 		tmp_labeling[node_id] = labeling[node_id];
 	Utils::ArrayInOut<int> label_writer(tmp_labeling, dims, 2);
 	label_writer.save("E:\\hossam\\temp\\ibfs\\labeling_" + std::to_string(run_id) + ".dat");
@@ -281,17 +281,17 @@ typename flowtype MaxflowSolver<nweightType, tweightType, flowtype>::QPBO_solver
 	
 	BasicGraph<nweightType, tweightType>::t_links_struct tlinks = graph->get_tlinks();
 	BasicGraph<nweightType, tweightType>::n_links_struct nlinks = graph->get_nlinks();
-	size_t n_nodes = graph->getNumberOfNodes();
+	uint64_t n_nodes = graph->getNumberOfNodes();
 
 	
 	//s=0, t=1
 	clock_t const_start = clock();
 	qpbo->AddNode(n_nodes);
 	//set t_link weights 
-	for (size_t link_id = 0; link_id < tlinks.n_tlinks; ++link_id)
+	for (uint64_t link_id = 0; link_id < tlinks.n_tlinks; ++link_id)
 		qpbo->AddUnaryTerm(tlinks.node_ids[link_id], tlinks.weights[link_id * 2 + 1], tlinks.weights[link_id * 2 + 0]);
 	//set n_link weights 
-	for (size_t offset = 0; offset < (nlinks.n_nlinks * 2); offset += 2)
+	for (uint64_t offset = 0; offset < (nlinks.n_nlinks * 2); offset += 2)
 		qpbo->AddPairwiseTerm(nlinks.edge_nodes[offset + 0], nlinks.edge_nodes[offset + 1],0, nlinks.weights[offset + 0], nlinks.weights[offset + 1],0);
 	clock_t const_end = clock();
 
@@ -305,16 +305,16 @@ typename flowtype MaxflowSolver<nweightType, tweightType, flowtype>::QPBO_solver
 
 	//get labeling from solver
 	memset(labeling, 0, sizeof(char)*n_nodes);
-	for (size_t node_id = 0; node_id < n_nodes; ++node_id)
+	for (uint64_t node_id = 0; node_id < n_nodes; ++node_id)
 		if (qpbo->GetLabel(node_id) >= 0)
 			labeling[node_id] = qpbo->GetLabel(node_id);
 		else
 			bool tft = 1;//ThreadSafeCout::Print("Unlabeled pixel\n");
 	
 	#ifdef MFS_DEBUG
-	ssize_t dims[2]; dims[0] = n_nodes; dims[1] = 1;
+	int64_t dims[2]; dims[0] = n_nodes; dims[1] = 1;
 	int *tmp_labeling = new int[n_nodes];
-	for (size_t node_id = 0; node_id < n_nodes; ++node_id)
+	for (uint64_t node_id = 0; node_id < n_nodes; ++node_id)
 		tmp_labeling[node_id] = labeling[node_id];
 	Utils::ArrayInOut<int> label_writer(tmp_labeling, dims, 2);
 	label_writer.save("E:\\hossam\\temp\\qpbo\\labeling_" + std::to_string(run_id) + ".dat");

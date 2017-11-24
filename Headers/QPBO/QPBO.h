@@ -129,8 +129,8 @@
 template <typename REAL> class QPBO
 {
 public:
-	typedef __int64 NodeId;
-	typedef __int64 EdgeId;
+	typedef int64_t NodeId;
+	typedef int64_t EdgeId;
 
 	// Constructor. 
 	// The first argument gives an estimate of the maximum number of nodes that can be added
@@ -148,7 +148,7 @@ public:
 	// 
 	// 2. If Probe() is used with option=1 or option=2, then it is advisable to specify
 	// a larger value of edge_num_max (e.g. twice the number of edges in the original energy).
-	QPBO(__int64 node_num_max, __int64 edge_num_max, void(*err_function)(const char *) = NULL);
+	QPBO(int64_t node_num_max, int64_t edge_num_max, void(*err_function)(const char *) = NULL);
 	// Copy constructor
 	QPBO(QPBO<REAL>& q);
 
@@ -170,15 +170,15 @@ public:
 	// no calls to delete/new (which could be quite slow).
 	void Reset();
 
-	__int64 GetMaxEdgeNum(); // returns the number of edges for which the memory is allocated. 
-	void SetMaxEdgeNum(__int64 num); // If num > edge_num_max then memory for edges is reallocated. Important for Probe() with option=1,2.
+	int64_t GetMaxEdgeNum(); // returns the number of edges for which the memory is allocated. 
+	void SetMaxEdgeNum(int64_t num); // If num > edge_num_max then memory for edges is reallocated. Important for Probe() with option=1,2.
 
 	///////////////////////////////////////////////////////////////
 
 	// Adds node(s) to the graph. By default, one node is added (num=1); then first call returns 0, second call returns 1, and so on. 
 	// If num>1, then several nodes are added, and NodeId of the first one is returned.
 	// IMPORTANT: see note about the constructor 
-	NodeId AddNode(__int64 num = 1);
+	NodeId AddNode(int64_t num = 1);
 
 	// Adds unary term Ei(x_i) to the energy function with cost values Ei(0)=E0, Ei(1)=E1.
 	// Can be called multiple times for each node.
@@ -199,11 +199,11 @@ public:
 
 	// Returns 0 or 1, if the node is labeled, and a negative number otherwise.
 	// Can be called after Solve()/ComputeWeakPersistencies()/Probe()/Improve().
-	__int64 GetLabel(NodeId i);
+	int64_t GetLabel(NodeId i);
 
 	// Sets label for node i. 
 	// Can be called before Stitch()/Probe()/Improve().
-	void SetLabel(NodeId i, __int64 label);
+	void SetLabel(NodeId i, int64_t label);
 
 	///////////////////////////////////////////////////////////////
 	// Read node & edge information.
@@ -217,7 +217,7 @@ public:
 	//   {
 	//       ...
 	//   }
-	__int64 GetNodeNum();
+	int64_t GetNodeNum();
 	EdgeId GetNextEdgeId(EdgeId e);
 
 	// Read current reparameterization. Cost values are multiplied by 2 in the returned result.
@@ -233,9 +233,9 @@ public:
 	// option == 0: returns 2 times the energy of internally stored solution which would be
 	//              returned by GetLabel(). Negative values (unknown) are treated as 0. 
 	// option == 1: returns 2 times the energy of solution set by the user (via SetLabel()).
-	REAL ComputeTwiceEnergy(__int64 option = 0);
+	REAL ComputeTwiceEnergy(int64_t option = 0);
 	// labeling must be an array of size nodeNum. Values other than 1 are treated as 0.
-	REAL ComputeTwiceEnergy(__int64* labeling);
+	REAL ComputeTwiceEnergy(int64_t* labeling);
 	// returns the lower bound defined by current reparameterizaion.
 	REAL ComputeTwiceLowerBound();
 
@@ -286,7 +286,7 @@ public:
 	// GetRegion()/Stitch() can be called only immediately after ComputeWeakPersistencies().
 	// NOTE: Stitch() changes the stored energy!
 	void Stitch();
-	__int64 GetRegion(NodeId i); // Returns a nonegative number which identifies the region. 0 corresponds to U^0.
+	int64_t GetRegion(NodeId i); // Returns a nonegative number which identifies the region. 0 corresponds to U^0.
 	                         // The numbers are not necessarily consecutive (i.e. some number may be missed).
 	                         // The maximum possible number is 2*nodeNum-5.
 
@@ -311,7 +311,7 @@ public:
 	// If array fixed_pixels of size nodeNum is provided, then it is set as follows:
 	// fixed_nodes[i] = 1 if node i was fixed during Improve(), and false otherwise.
 	// order_array and fixed_pixels can point to the same array.
-	bool Improve(__int64 N, __int64* order_array, __int64* fixed_nodes = NULL);
+	bool Improve(int64_t N, int64_t* order_array, int64_t* fixed_nodes = NULL);
 
 	// Calls the function above with random permutation of nodes.
 	// The user should initialize the seed before the first call (using srand()).
@@ -342,15 +342,15 @@ public:
 		REAL C; // Large constant used inside Probe() for enforcing directed constraints. 
 		        // Note: small value may increase the number of iterations, large value may cause overflow.
 
-		__int64* order_array; // if array of size nodeNum() is provided, then nodes are tested in the order order_array[0], order_array[1], ...
-		unsigned __int64 order_seed; // used only if order_array == NULL:
+		int64_t* order_array; // if array of size nodeNum() is provided, then nodes are tested in the order order_array[0], order_array[1], ...
+		uint64_t order_seed; // used only if order_array == NULL:
 		                         // 0: default order (0,1,...,nodeNum()-1) is used.
 		                         // otherwise: random permutation with random seed 'order_seed' is used.
-		__int64 dilation; // determines order of processing nodes (see Rother et al. CVPR'07):
+		int64_t dilation; // determines order of processing nodes (see Rother et al. CVPR'07):
 		              // d<0:  one iteration tests all unlabeled nodes (i.e. fixes them to 0 and 1). 
 		              // d>=0: nodes within distance d from successful nodes are tested in the next iteration.
 
-		bool(*callback_fn)(__int64 unlabeled_num); // if callback_fn!=NULL, then after every testing a node Probe calls callback_fn();
+		bool(*callback_fn)(int64_t unlabeled_num); // if callback_fn!=NULL, then after every testing a node Probe calls callback_fn();
 		                                        // unlabeled_num is the current number of remaining nodes in the energy.
 		                                        // If callback_fn returns true then Probe() terminates.
 	};
@@ -375,11 +375,11 @@ public:
 	// Before calling Probe() you can call SetLabel() to set an input labeling x0.
 	// During the procedure this labeling is transformed. The new labeling y0 can
 	// be read via GetLabel() after Probe() (P+I method - see Rother et al, CVPR'07).
-	void Probe(__int64* mapping, ProbeOptions& option);
+	void Probe(int64_t* mapping, ProbeOptions& option);
 
 	// If Probe() is called two times, then mappings mapping0 and mapping1 produced by the first and
 	// second run can be combined using MergeMappings. Array mapping0 is updated accordingly.
-	static void MergeMappings(__int64 nodeNum0, __int64* mapping0, __int64* mapping1);
+	static void MergeMappings(int64_t nodeNum0, int64_t* mapping0, int64_t* mapping1);
 
 
 	//////////////////////////////////////////////////////////
@@ -411,31 +411,31 @@ private:
 		Node	*next;		// pointer to the next active Node
 							// (or to itself if it is the last Node in the list)
 
-		unsigned __int64 is_sink : 1;	// flag showing whether the node is in the source or in the sink tree (if parent!=NULL)
-		unsigned __int64 is_marked : 1;	// set by mark_node()
-		unsigned __int64 is_in_changed_list : 1; // set by maxflow if the node is added to changed_list
-		unsigned __int64 is_removed : 1; // 1 means that the node is removed (for node[0][...])
+		uint64_t is_sink : 1;	// flag showing whether the node is in the source or in the sink tree (if parent!=NULL)
+		uint64_t is_marked : 1;	// set by mark_node()
+		uint64_t is_in_changed_list : 1; // set by maxflow if the node is added to changed_list
+		uint64_t is_removed : 1; // 1 means that the node is removed (for node[0][...])
 
-		__int64	         label : 2;
-		__int64	         label_after_fix0 : 2;
-		__int64	         label_after_fix1 : 2;
+		int64_t	         label : 2;
+		int64_t	         label_after_fix0 : 2;
+		int64_t	         label_after_fix1 : 2;
 
-		unsigned __int64 list_flag : 2; // used in Probe() and Improve()
+		uint64_t list_flag : 2; // used in Probe() and Improve()
 
-		unsigned __int64 user_label : 1; // set by calling SetLabel()
+		uint64_t user_label : 1; // set by calling SetLabel()
 
 		union
 		{
 			struct
 			{
 				// used inside maxflow algorithm
-				__int64		TS;			// timestamp showing when DIST was computed
-				__int64		DIST;		// distance to the terminal
+				int64_t		TS;			// timestamp showing when DIST was computed
+				int64_t		DIST;		// distance to the terminal
 				Arc		*parent;	// Node's parent
 			};
 			struct
 			{
-				__int64		region;
+				int64_t		region;
 				Node	*dfs_parent;
 				Arc		*dfs_current;
 			};
@@ -470,9 +470,9 @@ private:
 	Arc*	first_free; // list of empty spaces for edges. 
 	void InitFreeList();
 
-	__int64		node_num;
-	__int64		node_shift; // = node_num_max*sizeof(Node)
-	__int64		arc_shift; // = 2*edge_num_max*sizeof(Arc)
+	int64_t		node_num;
+	int64_t		node_shift; // = node_num_max*sizeof(Node)
+	int64_t		arc_shift; // = 2*edge_num_max*sizeof(Arc)
 
 	DBlock<nodeptr>		*nodeptr_block;
 
@@ -483,7 +483,7 @@ private:
 	REAL	zero_energy; // energy of solution (0,...,0)
 
 	// reusing trees & list of changed pixels
-	__int64					maxflow_iteration; // counter
+	int64_t					maxflow_iteration; // counter
 	bool				keep_changed_list;
 	Block<Node*>		*changed_list;
 
@@ -491,10 +491,10 @@ private:
 
 	void get_type_information(const char*& type_name, const char*& type_format);
 
-	void reallocate_nodes(__int64 node_num_max_new);
-	void reallocate_arcs(__int64 arc_num_max_new);
+	void reallocate_nodes(int64_t node_num_max_new);
+	void reallocate_arcs(int64_t arc_num_max_new);
 
-	__int64	stage; // 0: maxflow is solved only for nodes in [nodes[0],node_last[0]).
+	int64_t	stage; // 0: maxflow is solved only for nodes in [nodes[0],node_last[0]).
 		       //    Arcs corresponding to supermodular edges are present in arcs[0] and arcs[1],
 		       //    but nodes do not point to them.
 		       // 1: maxflow is solved for the entire graph.
@@ -513,26 +513,26 @@ private:
 
 	ProbeOptions probe_options;
 	bool user_terminated;
-	bool Probe(__int64* mapping); // Probe(int*,ProbeOptions&) iteratively calls Probe(int*)
+	bool Probe(int64_t* mapping); // Probe(int*,ProbeOptions&) iteratively calls Probe(int*)
 
 	void TestRelaxedSymmetry(); // debug function
 
 	REAL DetermineSaturation(Node* i);
 	void AddUnaryTerm(Node* i, REAL E0, REAL E1);
-	void FixNode(Node* i, __int64 x); // fix i to label x. there must hold IsNode0(i).
-	void ContractNodes(Node* i, Node* j, __int64 swap); // there must hold IsNode0(i) && IsNode0(j) && (swap==0 || swap==1)
+	void FixNode(Node* i, int64_t x); // fix i to label x. there must hold IsNode0(i).
+	void ContractNodes(Node* i, Node* j, int64_t swap); // there must hold IsNode0(i) && IsNode0(j) && (swap==0 || swap==1)
 	                                                // enforces constraint i->label = (j->label + swap) mod 2
 	                                                // i is kept, all arcs from j are deleted.
-	__int64 MergeParallelEdges(Arc* a1, Arc* a2); // there must hold (a1->sister->head == a2->sister->head) && IsNode0(a1->sister->head) &&
+	int64_t MergeParallelEdges(Arc* a1, Arc* a2); // there must hold (a1->sister->head == a2->sister->head) && IsNode0(a1->sister->head) &&
 	                                          //                 (a1->head == a2->head || a1->head = GetMate(a2->head))
 	                                          // returns 0 if a1 is removed, 1 otherwise
-	bool AddDirectedConstraint0(Arc* a, __int64 xi, __int64 xj); // functions return true if the energy was changed.
-	bool AddDirectedConstraint1(Arc* a, __int64 xi, __int64 xj); // ...0 checks whether submodurality needs to be swapped, ...1 preserves submodularity.
-	void AddDirectedConstraint(Node* i, Node* j, __int64 xi, __int64 xj); // adds new edge. first_free must not be NULL.
-	void AllocateNewEnergy(__int64* mapping);
+	bool AddDirectedConstraint0(Arc* a, int64_t xi, int64_t xj); // functions return true if the energy was changed.
+	bool AddDirectedConstraint1(Arc* a, int64_t xi, int64_t xj); // ...0 checks whether submodurality needs to be swapped, ...1 preserves submodularity.
+	void AddDirectedConstraint(Node* i, Node* j, int64_t xi, int64_t xj); // adds new edge. first_free must not be NULL.
+	void AllocateNewEnergy(int64_t* mapping);
 
 
-	static void ComputeRandomPermutation(__int64 N, __int64* permutation);
+	static void ComputeRandomPermutation(int64_t N, int64_t* permutation);
 
 	struct FixNodeInfo { Node* i; REAL INFTY; };
 	Block<FixNodeInfo>* fix_node_info_list;
@@ -541,7 +541,7 @@ private:
 
 	Node				*queue_first[2], *queue_last[2];	// list of active nodes
 	nodeptr				*orphan_first, *orphan_last;		// list of pointers to orphans
-	__int64					TIME;								// monotonically increasing global counter
+	int64_t					TIME;								// monotonically increasing global counter
 
 	/////////////////////////////////////////////////////////////////////////
 
@@ -563,7 +563,7 @@ private:
 	void process_source_orphan(Node *i);
 	void process_sink_orphan(Node *i);
 
-	__int64 what_segment(Node* i, __int64 default_segm = 0);
+	int64_t what_segment(Node* i, int64_t default_segm = 0);
 
 	void test_consistency(Node* current_node=NULL); // debug function
 };
@@ -585,15 +585,15 @@ private:
 
 
 template <typename REAL> 
-inline typename QPBO<REAL>::NodeId QPBO<REAL>::AddNode(__int64 num)
+inline typename QPBO<REAL>::NodeId QPBO<REAL>::AddNode(int64_t num)
 {
 	user_assert(num >= 0);
 
 	if (node_last[0] + num > node_max[0]) 
 	{
-		__int64 node_num_max = node_shift / sizeof(Node);
+		int64_t node_num_max = node_shift / sizeof(Node);
 		node_num_max += node_num_max / 2;
-		if (node_num_max < (__int64)(node_last[0] + num - nodes[0]) + 1) node_num_max = (__int64)(node_last[0] + num - nodes[0]) + 1;
+		if (node_num_max < (int64_t)(node_last[0] + num - nodes[0]) + 1) node_num_max = (int64_t)(node_last[0] + num - nodes[0]) + 1;
 		reallocate_nodes(node_num_max);
 	}
 
@@ -634,7 +634,7 @@ template <typename REAL>
 }
 
 template <typename REAL> 
-inline __int64 QPBO<REAL>::what_segment(Node* i, __int64 default_segm)
+inline int64_t QPBO<REAL>::what_segment(Node* i, int64_t default_segm)
 {
 	if (i->parent)
 	{
@@ -661,7 +661,7 @@ template <typename REAL>
 }
 
 template <typename REAL> 
-inline __int64 QPBO<REAL>::GetLabel(NodeId i)
+inline int64_t QPBO<REAL>::GetLabel(NodeId i)
 {
 	user_assert(i >= 0 && i < node_num);
 
@@ -669,7 +669,7 @@ inline __int64 QPBO<REAL>::GetLabel(NodeId i)
 }
 
 template <typename REAL> 
-inline __int64 QPBO<REAL>::GetRegion(NodeId i)
+inline int64_t QPBO<REAL>::GetRegion(NodeId i)
 {
 	user_assert(i >= 0 && i < node_num);
 	user_assert(stage == 1);
@@ -678,7 +678,7 @@ inline __int64 QPBO<REAL>::GetRegion(NodeId i)
 }
 
 template <typename REAL> 
-inline void QPBO<REAL>::SetLabel(NodeId i, __int64 label)
+inline void QPBO<REAL>::SetLabel(NodeId i, int64_t label)
 {
 	user_assert(i >= 0 && i < node_num);
 
@@ -714,28 +714,28 @@ template <typename REAL>
 	}
 	Node* i = a->sister->head;
 	Node* j = a->head;
-	_i = (__int64)(i - nodes[0]);
+	_i = (int64_t)(i - nodes[0]);
 
 	if (IsNode0(j))
 	{
 		E00 = E11 = 0;
 		if (stage == 0) { E01 = 2*a->r_cap; E10 = 2*a->sister->r_cap; }
 		else            { E01 = a->r_cap + a_mate->r_cap; E10 = a->sister->r_cap + a_mate->sister->r_cap; }
-		_j = (__int64)(j - nodes[0]);
+		_j = (int64_t)(j - nodes[0]);
 	}
 	else
 	{
 		E01 = E10 = 0;
 		if (stage == 0) { E00 = 2*a->r_cap; E11 = 2*a->sister->r_cap; }
 		else            { E00 = a->r_cap + a_mate->r_cap; E11 = a->sister->r_cap + a_mate->sister->r_cap; }
-		_j = (__int64)(j - nodes[1]);
+		_j = (int64_t)(j - nodes[1]);
 	}
 }
 
 template <typename REAL> 
-inline __int64 QPBO<REAL>::GetNodeNum()
+inline int64_t QPBO<REAL>::GetNodeNum()
 {
-		return (__int64)(node_last[0] - nodes[0]);
+		return (int64_t)(node_last[0] - nodes[0]);
 }
 
 template <typename REAL> 
@@ -750,9 +750,9 @@ template <typename REAL>
 }
 
 template <typename REAL> 
-inline __int64 QPBO<REAL>::GetMaxEdgeNum()
+inline int64_t QPBO<REAL>::GetMaxEdgeNum()
 {
-	return (__int64)(arc_max[0] - arcs[0]) / 2;
+	return (int64_t)(arc_max[0] - arcs[0]) / 2;
 }
 
 

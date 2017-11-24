@@ -1,3 +1,7 @@
+/*
+This software is a core part of AlphaPathMoves and is provied "AS IS" without any warranty.
+Copyright holder Hossam Isack <isack.hossam@gmail.com>.
+*/
 #ifndef __MARGINEDGESCUDA_CUH__
 #define __MARGINEDGESCUDA_CUH__
 #include <iostream>
@@ -5,6 +9,7 @@
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 #include <device_functions.h>
+#include <cstdint>
 #include "Utilities.h"
 
 
@@ -13,19 +18,19 @@ class MarginEdgesCuda
 {
 
 private:
-	unsigned long int  max_path;
-	ssize_t nlabels, ndspl, total_shifts_size, dims[3];
-	size_t n_banks, n_usedbits, *margin_edges_64, *dev_marign_edges_64;
-	long int *x2ypath, *shifts, *label2shifts, *child2parent, *shift2bitid, max_r;
-	long int *dev_x2ypath, *dev_shifts, *dev_label2shifts, *dev_child2parent, *dev_shift2bitid;
-	unsigned long int *dev_labeling;
-	ssize_t *dev_dims;
+	uint32_t  max_path;
+	int64_t nlabels, ndspl, total_shifts_size, dims[3];
+	uint64_t n_banks, n_usedbits, *margin_edges_64, *dev_marign_edges_64;
+	int32_t *x2ypath, *shifts, *label2shifts, *child2parent, *shift2bitid, max_r;
+	int32_t *dev_x2ypath, *dev_shifts, *dev_label2shifts, *dev_child2parent, *dev_shift2bitid;
+	uint32_t *dev_labeling;
+	int64_t *dev_dims;
 	bool lessthan35mode;
 
 public:
-	MarginEdgesCuda(ssize_t, ssize_t  *, long int *, unsigned long int, Array3D<long int> *
-		, Array2D<long int> **, long int ***, long int, size_t *, size_t, size_t);
-	void runKernel(unsigned long int, unsigned long int, unsigned long int *);
+	MarginEdgesCuda(int64_t, int64_t  *, int32_t *, uint32_t, Array3D<int32_t> *
+		, Array2D<int32_t> **, int32_t ***, int32_t, uint64_t *, uint64_t, uint64_t);
+	void runKernel(uint32_t, uint32_t, uint32_t *);
 	~MarginEdgesCuda();
 };
 

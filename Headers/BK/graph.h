@@ -1,4 +1,9 @@
-/* graph.h */
+/*
+This software has been modified by Hossam Isack <isack.hossam@gmail.com> to handle large graphs. 
+This software is provied "AS IS" without any warranty, please see original disclaimer below.
+*/
+
+/*graph.h */
 /*
 	This software library implements the maxflow algorithm
 	described in
@@ -41,7 +46,7 @@
 
 #include <string.h>
 #include "block.h"
-
+#include <cstdint>
 #include <assert.h>
 // NOTE: in UNIX you need to use -DNDEBUG preprocessor option to supress assert's!!!
 
@@ -60,7 +65,7 @@ public:
 		SOURCE	= 0,
 		SINK	= 1
 	} termtype; // terminals 
-	typedef unsigned __int64 node_id;
+	typedef uint64_t node_id;
 
 	/////////////////////////////////////////////////////////////////////////
 	//                     BASIC INTERFACE FUNCTIONS                       //
@@ -80,7 +85,7 @@ public:
 	// Also, temporarily the amount of allocated memory would be more than twice than needed.
 	// Similarly for edges.
 	// If you wish to avoid this overhead, you can download version 2.2, where nodes and edges are stored in blocks.
-	Graph(unsigned __int64 node_num_max, unsigned __int64 edge_num_max, void(*err_function)(char *) = NULL);
+	Graph(uint64_t node_num_max, uint64_t edge_num_max, void(*err_function)(char *) = NULL);
 
 	// Destructor
 	~Graph();
@@ -88,7 +93,7 @@ public:
 	// Adds node(s) to the graph. By default, one node is added (num=1); then first call returns 0, second call returns 1, and so on. 
 	// If num>1, then several nodes are added, and node_id of the first one is returned.
 	// IMPORTANT: see note about the constructor 
-	node_id add_node(node_id num = 1);
+	node_id add_node(uint64_t num = 1);
 
 	// Adds a bidirectional edge between 'i' and 'j' with the weights 'cap' and 'rev_cap'.
 	// IMPORTANT: see note about the constructor 
@@ -158,8 +163,8 @@ public:
 	arc_id get_next_arc(arc_id a);
 
 	// other functions for reading graph structure
-	size_t get_node_num() { return node_num; }
-	size_t get_arc_num() { return (size_t)(arc_last - arcs); }
+	uint64_t get_node_num() { return node_num; }
+	uint64_t get_arc_num() { return (uint64_t)(arc_last - arcs); }
 	void get_arc_ends(arc_id a, node_id& i, node_id& j); // returns i,j to that a = i->j
 
 	///////////////////////////////////////////////////
@@ -266,8 +271,8 @@ private:
 		arc			*parent;	// node's parent
 		node		*next;		// pointer to the next active node
 								//   (or to itself if it is the last node in the list)
-		size_t			TS;			// timestamp showing when DIST was computed
-		size_t			DIST;		// distance to the terminal
+		uint64_t			TS;			// timestamp showing when DIST was computed
+		uint64_t			DIST;		// distance to the terminal
 		int			is_sink : 1;	// flag showing whether the node is in the source or in the sink tree (if parent!=NULL)
 		int			is_marked : 1;	// set by mark_node()
 		int			is_in_changed_list : 1; // set by maxflow if 
@@ -296,7 +301,7 @@ private:
 	node				*nodes, *node_last, *node_max; // node_last = nodes+node_num, node_max = nodes+node_num_max;
 	arc					*arcs, *arc_last, *arc_max; // arc_last = arcs+2*edge_num, arc_max = arcs+2*edge_num_max;
 
-	size_t					node_num;
+	uint64_t					node_num;
 
 	DBlock<nodeptr>		*nodeptr_block;
 
@@ -307,18 +312,18 @@ private:
 	flowtype			flow;		// total flow
 
 	// reusing trees & list of changed pixels
-	size_t					maxflow_iteration; // counter
+	uint64_t					maxflow_iteration; // counter
 	Block<node_id>		*changed_list;
 
 	/////////////////////////////////////////////////////////////////////////
 
 	node				*queue_first[2], *queue_last[2];	// list of active nodes
 	nodeptr				*orphan_first, *orphan_last;		// list of pointers to orphans
-	size_t					TIME;								// monotonically increasing global counter
+	uint64_t					TIME;								// monotonically increasing global counter
 
 	/////////////////////////////////////////////////////////////////////////
 
-	void reallocate_nodes(size_t num); // num is the number of new nodes
+	void reallocate_nodes(uint64_t num); // num is the number of new nodes
 	void reallocate_arcs();
 
 	// functions for processing active list
@@ -357,7 +362,7 @@ private:
 
 
 template <typename captype, typename tcaptype, typename flowtype> 
-	inline typename Graph<captype,tcaptype,flowtype>::node_id Graph<captype,tcaptype,flowtype>::add_node(size_t num)
+	inline typename Graph<captype,tcaptype,flowtype>::node_id Graph<captype,tcaptype,flowtype>::add_node(uint64_t num)
 {
 	assert(num > 0);
 

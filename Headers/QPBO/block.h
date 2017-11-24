@@ -93,6 +93,7 @@
 #define __BLOCK_H__
 
 #include <stdlib.h>
+#include <cstdint>
 
 /***********************************************************************/
 /***********************************************************************/
@@ -105,7 +106,7 @@ public:
 	   (optionally) the pointer to the function which
 	   will be called if allocation failed; the message
 	   passed to this function is "Not enough memory!" */
-	Block(__int64 size, void(*err_function)(const char *) = NULL) { first = last = NULL; block_size = size; error_function = err_function; }
+	Block(int64_t size, void(*err_function)(const char *) = NULL) { first = last = NULL; block_size = size; error_function = err_function; }
 
 	/* Destructor. Deallocates all items added so far */
 	~Block() { while (first) { block *next = first -> next; delete[] ((char*)first); first = next; } }
@@ -113,7 +114,7 @@ public:
 	/* Allocates 'num' consecutive items; returns pointer
 	   to the first item. 'num' cannot be greater than the
 	   block size since items must fit in one block */
-	Type *New(__int64 num = 1)
+	Type *New(int64_t num = 1)
 	{
 		Type *t;
 
@@ -208,7 +209,7 @@ private:
 		Type					data[1];
 	} block;
 
-	__int64		block_size;
+	int64_t		block_size;
 	block	*first;
 	block	*last;
 public:
@@ -235,7 +236,7 @@ public:
 	   (optionally) the pointer to the function which
 	   will be called if allocation failed; the message
 	   passed to this function is "Not enough memory!" */
-	DBlock(__int64 size, void (*err_function)(const char *) = NULL) { first = NULL; first_free = NULL; block_size = size; error_function = err_function; }
+	DBlock(int64_t size, void (*err_function)(const char *) = NULL) { first = NULL; first_free = NULL; block_size = size; error_function = err_function; }
 
 	/* Destructor. Deallocates all items added so far */
 	~DBlock() { while (first) { block *next = first -> next; delete[] ((char*)first); first = next; } }
@@ -285,7 +286,7 @@ private:
 		block_item				data[1];
 	} block;
 
-	__int64			block_size;
+	int64_t			block_size;
 	block		*first;
 	block_item	*first_free;
 
@@ -306,19 +307,19 @@ public:
 	ReusableBuffer(void (*err_function)(const char *) = NULL) : size_max(0), buf(NULL), error_function(err_function) {}
 	~ReusableBuffer() { if (buf) free(buf); }
 
-	void* Alloc(__int64 size)
+	void* Alloc(int64_t size)
 	{
 		if (size <= size_max) return buf;
-		size_max = (__int64)(1.2*size_max) + size;
+		size_max = (int64_t)(1.2*size_max) + size;
 		if (buf) free(buf);
 		buf = (char*)malloc(size_max);
 		if (!buf) { if (error_function) (*error_function)("Not enough memory!"); exit(1); }
 		return buf;
 	}
-	void* Realloc(__int64 size)
+	void* Realloc(int64_t size)
 	{
 		if (size <= size_max) return buf;
-		size_max = (__int64)(1.2*size_max) + size;
+		size_max = (int64_t)(1.2*size_max) + size;
 		if (buf) buf = (char*)realloc(buf, size_max);
 		else     buf = (char*)malloc(size_max);
 		if (!buf) { if (error_function) (*error_function)("Not enough memory!"); exit(1); }
@@ -327,7 +328,7 @@ public:
 
 private:
 	char* buf;
-	__int64 size_max;
+	int64_t size_max;
 
 	void	(*error_function)(const char *);
 };
@@ -343,7 +344,7 @@ private:
 class Buffer
 {
 public:
-	Buffer(__int64 _default_size, void (*err_function)(const char *) = NULL) 
+	Buffer(int64_t _default_size, void (*err_function)(const char *) = NULL) 
 		: default_size(_default_size), buf_first(NULL), error_function(err_function) {}
 	~Buffer()
 	{
@@ -355,11 +356,11 @@ public:
 		}
 	}
 
-	void* Alloc(__int64 size)
+	void* Alloc(int64_t size)
 	{
 		if (!buf_first || buf_first->size+size>buf_first->size_max)
 		{
-			__int64 size_max = 2*size + default_size;
+			int64_t size_max = 2*size + default_size;
 			Buf* b = (Buf*)(new char[sizeof(Buf)+size_max]);
 			if (!b) { if (error_function) (*error_function)("Not enough memory!"); exit(1); }
 			b->next = buf_first;
@@ -375,11 +376,11 @@ public:
 private:
 	struct Buf
 	{
-		__int64 size, size_max;
+		int64_t size, size_max;
 		char* arr;
 		Buf* next;
 	};
-	__int64 default_size;
+	int64_t default_size;
 	Buf* buf_first;
 
 	void	(*error_function)(const char *);

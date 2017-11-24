@@ -1,3 +1,29 @@
+/*
+This code is has been modified by Hossam Isack <isack.hossam@gmail.com>.
+This software is provied "AS IS" without any warranty,
+please see original disclaimer below.
+
+
+###########################################################################
+Copyright (C) 2006 Pedro Felzenszwalb
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+###########################################################################
+*/
+
+
 #ifndef __EUCLIDEANDT_H__
 #define __EUCLIDEANDT_H__
 
@@ -11,6 +37,7 @@
 #include <cmath>
 #include <cfloat>
 #include <algorithm>
+#include <cstdint>
 #include "Utilities.h"
 
 #define square(q) ((q)*(q))
@@ -20,15 +47,15 @@ using namespace Utilities;
 using namespace std;
 namespace DistanceTransform
 {
-	const __int16 INSIDE = 1;
-	const __int16 OUTSIDE = 2;
-	const __int16 SQUARED = 4;
+	const int16_t INSIDE = 1;
+	const int16_t OUTSIDE = 2;
+	const int16_t SQUARED = 4;
 
 	template <typename T>
-	void internal_DT1D(T *f, size_t n, T * d)
+	void internal_DT1D(T *f, uint64_t n, T * d)
 	{
-		size_t *v = new size_t[n];
-		size_t  k = 0;
+		uint64_t *v = new uint64_t[n];
+		uint64_t  k = 0;
 		T *z = new T[n + 1];
 
 		v[0] = 0;
@@ -62,8 +89,8 @@ namespace DistanceTransform
 	/* dt of 2d function using squared distance */
 	template<typename T>
 	void internal_DT2D(Array2D<T> *im) {
-		size_t width = im->X;
-		size_t height = im->Y;
+		uint64_t width = im->X;
+		uint64_t height = im->Y;
 		T *f = new T[max(width, height)];
 		T *d = new T[max(width, height)];
 
@@ -86,9 +113,9 @@ namespace DistanceTransform
 	template<typename T>
 	void internal_DT3D(Array3D<T> *im) 
 	{
-		size_t width = im->X;
-		size_t height = im->Y;
-		size_t depth = im->Z;
+		uint64_t width = im->X;
+		uint64_t height = im->Y;
+		uint64_t depth = im->Z;
 		T *f = new T[max(depth, max(width, height))];
 		T *d = new T[max(depth, max(width, height))];
 
@@ -126,10 +153,10 @@ namespace DistanceTransform
 	   add inside and outside distance map option
 	   */
 	template<typename inT, typename outT>
-	Array2D<outT> *EDT(Array2D<inT> *in_im, inT on_values = 1, __int16 options = 2)
+	Array2D<outT> *EDT(Array2D<inT> *in_im, inT on_values = 1, int16_t options = 2)
 	{
-		size_t width = in_im->X;
-		size_t height = in_im->Y;
+		uint64_t width = in_im->X;
+		uint64_t height = in_im->Y;
 
 		Array2D<outT> *outside = NULL;
 		Array2D<outT> *inside = NULL;
@@ -176,11 +203,11 @@ namespace DistanceTransform
 	   add squared distance option (default returns d not d^2)
 	   */
 	template<typename inT, typename outT>
-	Array3D<outT> *EDT(const Array3D<inT> * const in_im, inT on_values = 1, __int16 options = 2)
+	Array3D<outT> *EDT(const Array3D<inT> * const in_im, inT on_values = 1, int16_t options = 2)
 	{
-		size_t width = in_im->X;
-		size_t height = in_im->Y;
-		size_t depth = in_im->Z;
+		uint64_t width = in_im->X;
+		uint64_t height = in_im->Y;
+		uint64_t depth = in_im->Z;
 		Array3D<outT> *outside = NULL;
 		Array3D<outT> *inside = NULL;
 		Array3D<outT> *output = NULL;

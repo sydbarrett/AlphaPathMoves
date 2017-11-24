@@ -91,6 +91,7 @@
 #define __BLOCK_H__
 
 #include <stdlib.h>
+#include <cstdint>
 
 /***********************************************************************/
 /***********************************************************************/
@@ -103,7 +104,7 @@ public:
 	   (optionally) the pointer to the function which
 	   will be called if allocation failed; the message
 	   passed to this function is "Not enough memory!" */
-	Block(unsigned __int32 size, void (*err_function)(char *) = NULL) { first = last = NULL; block_size = size; error_function = err_function; }
+	Block(uint32_t size, void (*err_function)(char *) = NULL) { first = last = NULL; block_size = size; error_function = err_function; }
 
 	/* Destructor. Deallocates all items added so far */
 	~Block() { while (first) { block *next = first -> next; delete[] ((char*)first); first = next; } }
@@ -111,7 +112,7 @@ public:
 	/* Allocates 'num' consecutive items; returns pointer
 	   to the first item. 'num' cannot be greater than the
 	   block size since items must fit in one block */
-	Type *New(unsigned __int32 num = 1)
+	Type *New(uint32_t num = 1)
 	{
 		Type *t;
 
@@ -185,7 +186,7 @@ private:
 		Type					data[1];
 	} block;
 
-	unsigned __int32 block_size;
+	uint32_t block_size;
 	block	*first;
 	block	*last;
 
@@ -206,7 +207,7 @@ public:
 	   (optionally) the pointer to the function which
 	   will be called if allocation failed; the message
 	   passed to this function is "Not enough memory!" */
-	DBlock(unsigned __int32 size, void (*err_function)(char *) = NULL) { first = NULL; first_free = NULL; block_size = size; error_function = err_function; }
+	DBlock(uint32_t size, void (*err_function)(char *) = NULL) { first = NULL; first_free = NULL; block_size = size; error_function = err_function; }
 
 	/* Destructor. Deallocates all items added so far */
 	~DBlock() { while (first) { block *next = first -> next; delete[] ((char*)first); first = next; } }
@@ -256,7 +257,7 @@ private:
 		block_item				data[1];
 	} block;
 
-	unsigned __int32 block_size;
+	uint32_t block_size;
 	block		*first;
 	block_item	*first_free;
 

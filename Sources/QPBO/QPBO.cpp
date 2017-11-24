@@ -25,7 +25,7 @@
 
 
 template <typename REAL> 
-QPBO<REAL>::QPBO(__int64 node_num_max, __int64 edge_num_max, void(*err_function)(const char *))
+QPBO<REAL>::QPBO(int64_t node_num_max, int64_t edge_num_max, void(*err_function)(const char *))
 	: node_num(0),
 	  nodeptr_block(NULL),
 	  changed_list(NULL),
@@ -86,8 +86,8 @@ template <typename REAL>
 	  error_function(q.error_function),
 	  zero_energy(q.zero_energy)
 {
-	__int64 node_num_max = q.node_shift / sizeof(Node);
-	__int64 arc_num_max = (__int64)(q.arc_max[0] - q.arcs[0]);
+	int64_t node_num_max = q.node_shift / sizeof(Node);
+	int64_t arc_num_max = (int64_t)(q.arc_max[0] - q.arcs[0]);
 	Node* i;
 	Arc* a;
 
@@ -186,12 +186,12 @@ template <typename REAL>
 }
 
 template <typename REAL> 
-void QPBO<REAL>::reallocate_nodes(__int64 node_num_max_new)
+void QPBO<REAL>::reallocate_nodes(int64_t node_num_max_new)
 {
-	code_assert(node_num_max_new > node_shift / ((__int64)sizeof(Node)));
+	code_assert(node_num_max_new > node_shift / ((int64_t)sizeof(Node)));
 	Node* nodes_old[2] = { nodes[0], nodes[1] };
 
-	__int64 node_num_max = node_num_max_new;
+	int64_t node_num_max = node_num_max_new;
 	nodes[0] = (Node*) realloc(nodes_old[0], 2*node_num_max*sizeof(Node));
 	if (!nodes[0]) { if (error_function) (*error_function)("Not enough memory!"); exit(1); }
 
@@ -210,17 +210,17 @@ void QPBO<REAL>::reallocate_nodes(__int64 node_num_max_new)
 	{
 		if (a->sister)
 		{
-			__int64 k = (a->head < nodes_old[1]) ? 0 : 1;
+			int64_t k = (a->head < nodes_old[1]) ? 0 : 1;
 			a->head = (Node*) ((char*)a->head + (((char*) nodes[k]) - ((char*) nodes_old[k])));
 		}
 	}
 }
 
 template <typename REAL> 
-void QPBO<REAL>::reallocate_arcs(__int64 arc_num_max_new)
+void QPBO<REAL>::reallocate_arcs(int64_t arc_num_max_new)
 {
-	__int64 arc_num_max_old = (__int64)(arc_max[0] - arcs[0]);
-	__int64 arc_num_max = arc_num_max_new; if (arc_num_max & 1) arc_num_max++;
+	int64_t arc_num_max_old = (int64_t)(arc_max[0] - arcs[0]);
+	int64_t arc_num_max = arc_num_max_new; if (arc_num_max & 1) arc_num_max++;
 	code_assert(arc_num_max > arc_num_max_old);
 	Arc* arcs_old[2] = { arcs[0], arcs[1] };
 
@@ -250,7 +250,7 @@ void QPBO<REAL>::reallocate_arcs(__int64 arc_num_max_new)
 
 		if (i->first) 
 		{
-			__int64 k = (i->first < arcs_old[1]) ? 0 : 1;
+			int64_t k = (i->first < arcs_old[1]) ? 0 : 1;
 			i->first = (Arc*) ((char*)i->first + (((char*) arcs[k]) - ((char*) arcs_old[k])));
 		}
 	}
@@ -260,10 +260,10 @@ void QPBO<REAL>::reallocate_arcs(__int64 arc_num_max_new)
 		{
 			if (a->next) 
 			{
-				__int64 k = (a->next < arcs_old[1]) ? 0 : 1;
+				int64_t k = (a->next < arcs_old[1]) ? 0 : 1;
 				a->next = (Arc*) ((char*)a->next + (((char*) arcs[k]) - ((char*) arcs_old[k])));
 			}
-			__int64 k = (a->sister < arcs_old[1]) ? 0 : 1;
+			int64_t k = (a->sister < arcs_old[1]) ? 0 : 1;
 			a->sister = (Arc*) ((char*)a->sister + (((char*) arcs[k]) - ((char*) arcs_old[k])));
 		}
 	}
@@ -394,7 +394,7 @@ template <typename REAL>
 		reallocate_arcs(2*(GetMaxEdgeNum() + GetMaxEdgeNum()/2));
 	}
 
-	EdgeId e = (__int64)(first_free - arcs[IsArc0(first_free) ? 0 : 1]) / 2;
+	EdgeId e = (int64_t)(first_free - arcs[IsArc0(first_free) ? 0 : 1]) / 2;
 	first_free = first_free->next;
 
 	if (stage == 0)
@@ -586,7 +586,7 @@ template <typename REAL>
 
 		Node* i[2] = { a_rev[0]->head, a[1]->head };
 		Node* j[2] = { a[0]->head, a_rev[1]->head };
-		__int64 k = IsNode0(i[0]) ? 0 : 1;
+		int64_t k = IsNode0(i[0]) ? 0 : 1;
 		if (i[k] != &nodes[0][_i]) { delta = E01; E01 = E10; E10 = delta; }
 		if (IsNode0(j[k]))
 		{ 
@@ -820,11 +820,11 @@ template <typename REAL>
 }
 
 template <typename REAL>
-REAL QPBO<REAL>::ComputeTwiceEnergy(__int64 option)
+REAL QPBO<REAL>::ComputeTwiceEnergy(int64_t option)
 {
 	REAL E = 2*zero_energy, E1[2], E2[2][2];
-	__int64 i, j, e;
-	__int64 xi, xj;
+	int64_t i, j, e;
+	int64_t xi, xj;
 
 	for (i=0; i<GetNodeNum(); i++)
 	{
@@ -853,10 +853,10 @@ REAL QPBO<REAL>::ComputeTwiceEnergy(__int64 option)
 }
 
 template <typename REAL>
-REAL QPBO<REAL>::ComputeTwiceEnergy(__int64* solution)
+REAL QPBO<REAL>::ComputeTwiceEnergy(int64_t* solution)
 {
 	REAL E = 2*zero_energy, E1[2], E2[2][2];
-	__int64 i, j, e;
+	int64_t i, j, e;
 
 	for (i=0; i<GetNodeNum(); i++)
 	{
@@ -875,7 +875,7 @@ template <typename REAL>
 	REAL QPBO<REAL>::ComputeTwiceLowerBound()
 {
 	REAL lowerBound = 2*zero_energy, E0, E1, E00, E01, E10, E11;
-	__int64 i, j, e;
+	int64_t i, j, e;
 
 	for (i=0; i<GetNodeNum(); i++)
 	{

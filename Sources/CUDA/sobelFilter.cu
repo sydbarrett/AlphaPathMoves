@@ -14,15 +14,15 @@ int host_hz[27] = { -1, -2, -1, -2, -4, -2, -1, -2, -1, 0, 0, 0, 0, 0, 0, 0, 0, 
 
 template <class InType, class OutType>
 __global__ void sobelFilter3D(const InType * __restrict__ inVol
-	, const unsigned __int64 inX, const unsigned __int64 inY, const unsigned __int64 inZ, bool inNormalize, bool inReverse
+	, const uint64_t inX, const uint64_t inY, const uint64_t inZ, bool inNormalize, bool inReverse
 	, OutType * vfield)
 
 {
-	__int64 X = inX, Y = inY, XY = X*Y, Z = inZ, XYZ = X*Y*Z;
-	__int64 x, y, z;
+	int64_t X = inX, Y = inY, XY = X*Y, Z = inZ, XYZ = X*Y*Z;
+	int64_t x, y, z;
 	bool normalize = inNormalize, reverse = inReverse;
 	double mag, gx, gy, gz;
-	for (__int64 p = threadIdx.x + blockIdx.x* blockDim.x; p < XYZ; p += gridDim.x*blockDim.x)
+	for (int64_t p = threadIdx.x + blockIdx.x* blockDim.x; p < XYZ; p += gridDim.x*blockDim.x)
 	{
 
 		z = p / XY;
@@ -87,10 +87,10 @@ __global__ void sobelFilter3D(const InType * __restrict__ inVol
 	}
 }
 template <class InType, class OutType>
-__global__ void sobelFilter2D(const InType * __restrict__ inVol, const unsigned __int64 inX, const unsigned __int64 inY, bool inNormalize, bool inReverse, OutType * vfield)
+__global__ void sobelFilter2D(const InType * __restrict__ inVol, const uint64_t inX, const uint64_t inY, bool inNormalize, bool inReverse, OutType * vfield)
 {
-	__int64 X = inX, Y = inY, XY = X*Y;
-	__int64 p = blockIdx.x* blockDim.x + threadIdx.x, x, y, stride = gridDim.x*blockDim.x;
+	int64_t X = inX, Y = inY, XY = X*Y;
+	int64_t p = blockIdx.x* blockDim.x + threadIdx.x, x, y, stride = gridDim.x*blockDim.x;
 	bool normalize = inNormalize, reverse = inReverse;
 	double mag, gx, gy;
 
@@ -134,10 +134,10 @@ __global__ void sobelFilter2D(const InType * __restrict__ inVol, const unsigned 
 	}
 }
 template <class InType,class OutType>
-__global__ void sobelFilter2DTexture(const InType * __restrict__ inVol, const unsigned __int64 inX, const unsigned __int64 inY, bool inNormalize, bool inReverse, OutType * vfield)
+__global__ void sobelFilter2DTexture(const InType * __restrict__ inVol, const uint64_t inX, const uint64_t inY, bool inNormalize, bool inReverse, OutType * vfield)
 {
-	__int64 X = inX, Y = inY, XY = X*Y, x, y, stride = gridDim.x*blockDim.x;
-	__int64 p = blockIdx.x* blockDim.x + threadIdx.x;
+	int64_t X = inX, Y = inY, XY = X*Y, x, y, stride = gridDim.x*blockDim.x;
+	int64_t p = blockIdx.x* blockDim.x + threadIdx.x;
 	bool normalize = inNormalize, reverse = inReverse;
 	double mag,gx,gy;
 	while (p < XY)
@@ -184,7 +184,7 @@ NDField<OutType> * SobelFilter(Array3D<InType> * inVol, bool normalize , bool re
 {
 	InType * dev_vol = NULL;
 	OutType * dev_vfield = NULL;
-	unsigned __int64 nVoxels = inVol->totalsize;
+	uint64_t nVoxels = inVol->totalsize;
 	NDField<OutType> *vfield = new NDField<OutType>();
 	vfield->allocate(3, inVol->X, inVol->Y, inVol->Z);
 	
@@ -232,8 +232,8 @@ NDField<OutType> * SobelFilter(Array3D<InType> * inVol, bool normalize , bool re
 	if (cudaStatus != cudaSuccess) { fprintf(stderr, "sobelFilter: cudaMemcpy failed!"); exit(EXIT_FAILURE); }
 
 
-	unsigned int nThreads = 128;
-	unsigned int nBlocks = 128;
+	uint32_t nThreads = 128;
+	uint32_t nBlocks = 128;
 
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);

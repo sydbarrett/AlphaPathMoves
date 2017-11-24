@@ -33,7 +33,7 @@ template <typename REAL>
 	Node* i;
 	Node* j;
 	Node* stack = NULL;
-	__int64 component;
+	int64_t component;
 
 	for (i=nodes[0]; i<node_last[0]; i++)
 	{

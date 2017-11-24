@@ -10,6 +10,7 @@
 #include <filesystem>
 #include <string>
 #include <regex>
+#include <cstdint>
 #include "Utilities.h"
 #include "AlphaPathMoves.h"
 #include "TS_Logger.h"
@@ -21,16 +22,16 @@ std::queue<std::string> unittests_queue;
 
 
 
-double getWpq_Euclidean(long long p, long long q, const void * data) 
+double getWpq_Euclidean(int64_t p, int64_t q, const void * data) 
 {  
 	return 1; 
 };
-double getWpq_Canny( long long p, long long q, const void * data) 
+double getWpq_Canny( int64_t p, int64_t q, const void * data) 
 { 
-	const unsigned long int * cannydata = reinterpret_cast<const unsigned long int *>(data);
+	const uint32_t * cannydata = reinterpret_cast<const uint32_t *>(data);
 	return (cannydata != nullptr && ((cannydata[p] == 1 && cannydata[q] == 1) || (cannydata[p] == 0 && cannydata[q] == 0))) ? 1 : 0.125; 
 };
-double getWpq_Intensity( long long p, long long q, const void * data)
+double getWpq_Intensity( int64_t p, int64_t q, const void * data)
 { 
 	const double * voldata = reinterpret_cast<const double *>(data);
 	return exp(-pow2(voldata[p] - voldata[q]) / 10000); 
@@ -39,33 +40,32 @@ double getWpq_Intensity( long long p, long long q, const void * data)
 int run_unittestcase(std::string src_path)
 {
 	Array3D<double> vol(src_path + "vol.mat");
-	Array3D<long int> hhmask(src_path + "hhogsmask.mat");
-	Array3D<unsigned long int> canny(src_path + "canny.mat");
-	Array2D<long long> dataterms(src_path + "dataterms.mat");
-	Array3D<unsigned long int> initlabeling(src_path + "initlabeling.mat");
+	Array3D<int32_t> hhmask(src_path + "hhogsmask.mat");
+	Array3D<uint32_t> canny(src_path + "canny.mat");
+	Array2D<int64_t> dataterms(src_path + "dataterms.mat");
+	Array3D<uint32_t> initlabeling(src_path + "initlabeling.mat");
 	Array2D<double> hhog_theta(src_path + "hhog_theta.mat");
 	Array2D<double> smooth_lambda(src_path + "smooth_lambda.mat");
 	Array2D<double> hierarchical_tree_weights(src_path + "hierarchical_tree.mat");
-	Array2D<unsigned long int> hhog_wsize(src_path + "hhog_wsize.mat");
-	Array2D<unsigned long int> smooth_wsize(src_path + "smooth_wsize.mat");
-	Array2D<unsigned long int> min_margins(src_path + "min_margins.mat");
-	Array2D<unsigned long int> exp_ordering(src_path + "expansion_ordering.mat");
-	//Array3D<unsigned long int> ut_solution(src_path + "solution.mat");
-	Array2D<long long> ut_sol_energy(src_path + "energy.mat");
+	Array2D<uint32_t> hhog_wsize(src_path + "hhog_wsize.mat");
+	Array2D<uint32_t> smooth_wsize(src_path + "smooth_wsize.mat");
+	Array2D<uint32_t> min_margins(src_path + "min_margins.mat");
+	Array2D<uint32_t> exp_ordering(src_path + "expansion_ordering.mat");
+	Array2D<int64_t> gt_sol_energy(src_path + "energy.mat");
 
-	unsigned long int n_labels = hierarchical_tree_weights.X; //number of labels (also hierarchical.X==hierarchical.Y=number of labels)
-	ssize_t dims[3];
+	uint32_t n_labels = hierarchical_tree_weights.X; //number of labels (also hierarchical.X==hierarchical.Y=number of labels)
+	int64_t dims[3];
 	dims[0] = vol.X;
 	dims[1] = vol.Y;
 	dims[2] = vol.Z;
 
 	
 	
-	using gctype = long long;
+	using gctype = int64_t;
 	using PathMoves = GC::AlphaPathMoves< gctype, gctype, gctype>;
 	using MaxSolver = MaxflowSolver<gctype, gctype, gctype>;
 	PathMoves * optimizer = nullptr;
-	Array3D<unsigned long int> * sol_labeling = nullptr;
+	Array3D<uint32_t> * sol_labeling = nullptr;
 	gctype sol_energy;
 	
 	try
@@ -88,7 +88,7 @@ int run_unittestcase(std::string src_path)
 		optimizer->setTreeWeights(smooth_lambda.data[0], &hierarchical_tree_weights); 
 
 		//[optional] specify the function to be called to compute the discontinuity weights between pixels p and q, i.e. w_pq.
-		//The function signature is double getWpq(long long p, long long q, const void * data);
+		//The function signature is double getWpq(int64_t p, int64_t q, const void * data);
 		//Also, specity a pointer to the data that will be sent to the function along with indxies of pixels p and q.
 		optimizer->setWpqFunction(getWpq_Canny, canny.data);
 		
@@ -116,7 +116,7 @@ int run_unittestcase(std::string src_path)
 
 		//[required] run pathmoves and specify the desired max-flow solver. 
 		//The currently supported solvers are IBFS, BK and QPBO. IBFS proved to be the fastest but uses more memeory than BK.
-		//Also, DONOT use IBFS for floating point precision flow/capcity types, it is unstable.
+		//Also, DO NOT use IBFS for floating point precision flow/capcity types, it could be unstable and might not terminate.
 		sol_labeling = optimizer->runPathMoves(MaxSolver::SolverName::IBFS, sol_energy);
 
 	}catch (const std::exception& e) {
@@ -129,7 +129,7 @@ int run_unittestcase(std::string src_path)
 	}
 
 	//Unittest, validation
-	if (ut_sol_energy.data[0] != sol_energy)
+	if (gt_sol_energy.data[0] != sol_energy)
 		return false;
 
 	if (sol_labeling)
@@ -163,11 +163,22 @@ void thread_worker()
 			bgn_log << LogType::ERROR << "UT " + instance_path + " Failed\n" << end_log;
 	} 
 }
-int main()
+int main(int argc, char *argv[])
 {
 	
-	const int n_threads = 1;
-	for (fs::path p : fs::directory_iterator("D:\\hossam\\temp\\UnitTests\\"))
+	if (argc<2)
+	{
+		bgn_log << LogType::ERROR << " Usage .... \n" << end_log;
+		bgn_log << LogType::ERROR << " AlphaPathMoves unittests_path [number of threads] \n" << end_log;
+		throw("Parameters were not set correctly");
+	}
+	std::string unittest_path(argv[1]);
+
+	int n_threads = 3;
+	if (argc == 3)
+		n_threads = atoi(argv[2]);
+
+	for (fs::path p : fs::directory_iterator(unittest_path))
 		unittests_queue.push(p.u8string() + "\\");
 
 	std::vector <std::thread> working_threads;
