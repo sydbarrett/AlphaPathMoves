@@ -322,7 +322,7 @@ namespace GC{
 	public:
 		AlphaPathMoves(int64_t dims[3], uint32_t in_nlabels);
 		~AlphaPathMoves(void);
-		static captype getLargePenalty( int32_t n_dims) 
+		static captype getLargePenalty( ) 
 		{ 
 			return std::min<captype>(10000000000, std::numeric_limits<captype>::max() / 100);
 		}

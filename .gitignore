@@ -17,5 +17,10 @@
 *.pdb
 *.pdb
 unscramble_pm_logfile.*
-build\
-build/
+build/*
+Documentation/*
+!Documentation/apm_documentation.bib
+!Documentation/apm_documentation.tex
+!Documentation/apm_documentation.pdf
+!Documentation/images.pptx
+!Documentation/images/*
