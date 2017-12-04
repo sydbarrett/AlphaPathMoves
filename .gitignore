@@ -19,6 +19,7 @@
 unscramble_pm_logfile.*
 build/*
 Documentation/*
+Documentation_Private/*
 !Documentation/apm_documentation.bib
 !Documentation/apm_documentation.tex
 !Documentation/apm_documentation.pdf
