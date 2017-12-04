@@ -347,11 +347,8 @@ namespace GC{
 	AlphaPathMoves<captype, tcaptype, flowtype>::AlphaPathMoves(int64_t dims[3],  uint32_t in_nlabels)
 	{
 		called_functions.default_mode = true;
-		if (dims[2]==1)
-			LRG_PENALTY = this->getLargePenalty(2);
-		else
-			LRG_PENALTY = this->getLargePenalty(3);
-
+		LRG_PENALTY = this->getLargePenalty();
+		
 		this->nlabels = in_nlabels;
 		this->dims[0] = dims[0];
 		this->dims[1] = dims[1];

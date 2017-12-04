@@ -62,15 +62,7 @@
 \def\labelstyle{\small }
 \def\gpath[#1,#2]{\Gamma({#1},{#2})}
 \def\keyhl[#1]{\lstinline{@#1@}}
-\newcommand{\vsub}[1]
-{
-\subsection*{#1}
-\vspace{2ex}
-}
-\newcommand{\vpar}[1] {
-\vspace{-2ex}
-\paragraph{-#1:}
-}
+
 \lstset { %
     language=C++,
     backgroundcolor=\color{black!8}, % set backgroundcolor
@@ -112,7 +104,7 @@ ${{\textcopyright}}$ Copyright by \href{http://www.hossamisack.com}{Hossam Isack
 \end{titlepage}
 \restoregeometry % restores the geometry
 \nopagecolor% Use this to restore the color pages to white
-
+ 
 
 %\maketitle
 %\newpage
@@ -125,8 +117,8 @@ ${{\textcopyright}}$ Copyright by \href{http://www.hossamisack.com}{Hossam Isack
 
 This software and its modifications can be used and distributed for
    research purposes only. Publications resulting from use of this code
-    must cite publications according to the rules given above. Only
-    Hossam Isack has the right to redistribute this code, unless expressed
+    must cite \cite{pathmovesIsack}. In addition, \cite{hedgehogIsack} must be cited if a Hedgehog shape prior was used.
+    Only Hossam Isack has the right to redistribute this code, unless expressed
     permission is given otherwise.
 
 Commercial use of this code, any of
@@ -152,7 +144,7 @@ Commercial use of this code, any of
     (including negligence or otherwise) arising in any way out of the use
     of this software, even if advised of the possibility of such damage.
 \section{Download Link and Minimum Requirements}
-The latest version of the library could be found on Github \textbf{here???}, please download the latest {\em release}.
+The latest version of the library could be found on Github \href{https://github.com/sydbarrett/AlphaPathMoves}{here}.
 
 \noindent Minimum Requirements:
 \begin{itemize}
@@ -167,7 +159,7 @@ A Matlab wrapper is currently in progress.
 A Python wrapper (hopefully in near future).
 
 \section{Notation}
-In order to be able to use this Library the user should have basic understanding of \cite{pathmovesIsack} and \cite{hedgehogIsack} (if needed) which introduced \APM and Hedgehog shape prior.
+In order to be able to use this library the user should have basic understanding of \cite{pathmovesIsack} and \cite{hedgehogIsack} (if needed) which introduced \APM and Hedgehog shape prior.
 Table \ref{tb:notation} shows some of the notation used in \cite{pathmovesIsack} as reference to simplify the tie between the library and \cite{pathmovesIsack}.
 \newpage
 \renewcommand{\arraystretch}{1.7}
@@ -177,17 +169,17 @@ Table \ref{tb:notation} shows some of the notation used in \cite{pathmovesIsack}
 \hline
 Symbol& Definition \\
 \hline
-$\pixelset$ & set of voxels in the volume to be segmented.\\
+$\pixelset$ & set of all voxels in the volume to be segmented.\\
 $\labelset$ & set of labels which correspond to objects of interest, e.g.~liver, kidney etc.\\
 $\labelvar_p$ & label assigned to voxel $p$, i.e.~$\labelvar_p \in \labelset$.\\
 $\labelvars$ & a labeling,~i.e. $\labelvar= \{\labelvar_p \; | \; \forall p \in \pixelset\}$.\\
-$\unary_p(\labelvar_p)$ & cost of assigning voxel $p$ to label $\labelvar_p$, usually this is the -{\em log-likelihood} of voxel $p$ belonging to label $\labelvar_p$. If label $\labelvar_p$ is modeled as a Gaussian $(\mu_{\labelvar_p},\sigma_{\labelvar_p})$ then its corresponding data term will be \\
+$\unary_p(\ell)$ & cost of assigning voxel $p$ to label $\ell$, usually this is the -{\em log-likelihood} of voxel $p$ belonging to label $\ell$. If label $\ell$ color model is modeled as a Gaussian $(\mu,\sigma)$ then its corresponding data term will be \\
  &
  \multicolumn{1}{|c|}{
  \(
- \displaystyle \unary_p(\labelvar_p)= -log
+ \displaystyle \unary_p(\ell)= -log
  \left(
- \frac{1}{\sqrt{2\pi\sigma_{\labelvar_p}^2}} x^{\frac{(I_p-\mu_{\labelvar_p})^2}{\sigma_{\labelvar_p}^2}}
+ \frac{1}{\sqrt{2\pi\sigma^2}} x^{\frac{(I_p-\mu)^2}{\sigma^2}}
  \right) \quad \forall p \in \pixelset
  \)
  } \\
@@ -195,7 +187,7 @@ $\unary_p(\labelvar_p)$ & cost of assigning voxel $p$ to label $\labelvar_p$, us
  $\lambda$ & a normalization constant between the data and smoothness terms. \\
 $\neighbset$ & set of all neighboring pixels, used in penalizing spatial discontinuities. \\
 $w_{pq}$ & discontinuity cost of assigning neighboring pixels $p$ and $q$ to two different labels. \\
-$V(\labelvar_p,\labelvar_q)$ & discontinuity cost of a pair of neighboring pixels to labels $\labelvar_p$ and $\labelvar_q$.\\
+$V(\labelvar_p,\labelvar_q)$ & discontinuity cost of assigning a pair of neighboring pixels to labels $\labelvar_p$ and $\labelvar_q$.\\
 $w_{pq}V(\labelvar_p,\labelvar_q)$ & composite cost of assigning neighboring pixels $p$ and $q$ to labels $\labelvar_p$ and $\labelvar_q$. \\
 $w_\infty$ & a prohibitively expensive cost. In theory, $w_\infty=\infty$.\\
 $\Tree$ & hierarchical tree defined over the set of the set of labels $\labelset.$\\
@@ -230,7 +222,7 @@ Recall, the HINTS objective \cite{pathmovesIsack} is to minimize the following e
 \includegraphics[width=0.31\linewidth]{images/tree_minmargins.png}\\[-1ex]
 (a) hierarchical tree $\Tree$ & (b) tree-metric smoothness $\pairwise$  & (c) min.~margin constraints $\margins_\ell$
 \end{tabular}
-\caption{(a) show a sample hierarchical tree $\Tree$ that we will be using through out this guide. In (b) the tree-metric smoothness function is shown as weights on $\Tree$, e.g.~ $V(B,A)=0.1$ while $V(R,A)=0.$ (c) shows the min-margins constraints for each label, e.g. $\margins_E=0$ and $\margins_C=2.$}
+\caption{(a) show a sample hierarchical tree $\Tree$ that we will be using through out this guide. In (b) the tree-metric smoothness function is shown as weights on $\Tree$, e.g.~ $V(B,A)=0.1$ while $V(R,A)=0.$ (c) shows the min.~margins constraints, e.g. $\margins_E=0$ and $\margins_C=2.$}
 \label{fig:bsceg}
 \end{figure}
 
@@ -267,7 +259,7 @@ AlphaPathMoves( int64_t in_dims[3],  @uint32_t@ in_nlabels)
 \item  \lstinline{in_dims} : the dimensions of the volume to be segmented.
 \item  \lstinline{in_nlabels} : the number of labels in the hierarchical tree $\Tree.$
 \end{itemize}
-For the HINTS example in Fig.~\ref{fig:bsceg}, \lstinline[mathescape=true]{in_dims $\gets \{6,5,4\}$} and \lstinline[mathescape=true]{in_nlabels $\gets$ 6.}
+For the HINTS example in Fig.~\ref{fig:bsceg}, \lstinline[mathescape=true]{in_dims $\gets (6,5,4)$} and \lstinline[mathescape=true]{in_nlabels $\gets$ 6.}
 \begin{tcolorbox}
 \APM only accepts 3D volumes. To segment 2D image simply pass it as a 3D volume consisting of one slice.
 \end{tcolorbox}
@@ -291,7 +283,7 @@ For the HINTS example in Fig.~\ref{fig:bsceg}, Fig.~\ref{fig:eg_dataterms} shows
 \label{fig:eg_dataterms}
 \end{figure}
 \begin{tcolorbox}
-Note the label ordering/indexing, e.g.~label R is indexed by 0 and D is indexed by 4. Regardless of the chosen label ordering, you must adhere to the same ordering when calling \APM functions.
+Note the label ordering/indexing in Fig.~\ref{fig:eg_dataterms}, e.g.~label R is indexed by 0 and D is indexed by 4. Regardless of the chosen label ordering, you must adhere to the same ordering when calling \APM functions.
 \end{tcolorbox}
 
 
@@ -308,7 +300,7 @@ For the HINTS example shown in Fig.~\ref{fig:bsceg}, \lstinline{in_partialTreeme
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.65\linewidth]{images/tree_weights.png}
-\caption{shows the expected  \lstinline{in_partialTreemetric->data} array which encodes (1) the adjacency matrix of the hierarchical tree $\Tree$ where -1 means not connected, and (2) the smoothness weights of $V$ which are given in Fig.~\ref{fig:bsceg}(b). Notice that array uses the same label ordering/indexing used in Section \ref{sc:dataterms}.}
+\caption{shows the expected  \lstinline{in_partialTreemetric->data} array which encodes (1) the adjacency matrix of the hierarchical tree $\Tree$ where -1 means not connected, and (2) the smoothness weights of $V$ which are given in Fig.~\ref{fig:bsceg}(b). Notice that shown array uses the same label ordering/indexing used in Section \ref{sc:dataterms}.}
 \label{fig:eg_treeweights}
 \end{figure}
 
@@ -316,7 +308,7 @@ For the HINTS example shown in Fig.~\ref{fig:bsceg}, \lstinline{in_partialTreeme
 void setSmoothnessNeighbourhoodWindowSize(@uint32_t@ in_winsize)
 \end{lstlisting}
 \begin{itemize}
-\item \lstinline{in_winsize} : is the window size used in generating the neighborhood set $\neighbset$. This must be an odd number. For example, if \lstinline{in_winsize} was set to 3 then any voxel within the $3\times 3\times 3$ cube around voxel $p$ will be considered its neighbour.
+\item \lstinline{in_winsize} : is the window size (odd numbers) used in generating the neighborhood set $\neighbset$. For example, if \lstinline{in_winsize} was set to 3 then any voxel within the $3\times 3\times 3$ cube around voxel $p$ will be considered its neighbour.
 \end{itemize}
 
 \begin{lstlisting}
@@ -328,7 +320,7 @@ void setWpqFunction(
 \item \lstinline{in_getWpq} : is a pointer to function that will be called to computer $w_{pq}$. Indices $p$ and $q$ will be sent to this function in addition to \lstinline{wpq_extra_data}.
 \item \lstinline{wpq_extra_data} : is pointer to any extra data you would like to have access to when computing $w_{pq}.$ Note, the caller owns the \lstinline{wpq_extra_data} memory resource.
 \end{itemize}
-Calling \lstinline{setWpqFunction} is {\em optional}, by default $w_{pq}$ is 1. Listing \ref{ls:constantwpq} shows a $w_{pq}$ function that would always return 1, which is equivalent to the default behavior when \lstinline{setWpqFunction} is not called. Listing \ref{ls:canny} shows a $w_{pq}$ function that would prefer discontinuities to occur along canny edges (which are passed as extra data).
+Calling \lstinline{setWpqFunction} is {\em optional}, by default $w_{pq}$ is 1. Listing \ref{ls:constantwpq} shows a $w_{pq}$ function that would always return 1, which is equivalent to the default behavior when \lstinline{setWpqFunction} is not called. Listing \ref{ls:canny} shows a $w_{pq}$ function that would prefer discontinuities to occur along canny edges (which is passed as extra data).
 
 \begin{lstlisting}[caption=Constant $w_{pq}$,label={ls:constantwpq},backgroundcolor=\color{white},frame=single]
 double getWpq_Euclidean(int64_t p, int64_t q,
@@ -356,7 +348,7 @@ double getWpq_Canny( int64_t p, int64_t q, const void * data)
 void setInitialLabeling(const Array3D<@uint32_t@> * in_labeling)
 \end{lstlisting}
 \begin{itemize}
-\item \lstinline{in_labeling} : is a pointer a 3D array wrapper. \lstinline{in_labeling->data} is a pointer to an array containing the initial labeling, such that \lstinline{in_labeling->data[p]} is initial label of voxel $p$.
+\item \lstinline{in_labeling} : is a pointer a 3D array wrapper. \lstinline{in_labeling->data} is a pointer to an array containing the initial labeling, such that \lstinline{in_labeling->data[p]} is the initial label of voxel $p$.
 \end{itemize}
 
 \begin{lstlisting}
@@ -368,7 +360,7 @@ void setInitialLabeling(@uint32_t@ lbl_id) //overloaded
 \end{itemize}
 
 \begin{tcolorbox}
-\APM {\em requires a valid initial solution}. Thus, if using Hedgehogs then the initial labeling can not violate the Hedgehog scribbles passed along in the Hedgehog mask, see Section \ref{sc:hhog} for more details. \APM could easily recover from solutions with invalid min.~margins.
+\APM {\em requires a valid initial solution}. Thus, when using Hedgehogs the initial labeling must not violate the Hedgehog scribbles passed along in the Hedgehog mask, see Section \ref{sc:hhog} for more details. \APM could easily recover from initial solutions with invalid min.~margins.
 \end{tcolorbox}
 
 \subsection{Min.~Margin Constraints}
@@ -389,7 +381,7 @@ There are three options
 \end{enumerate}
 \end{itemize}
 
-For the HINTS example Fig.\ref{fig:bsceg}, \lstinline[mathescape=true]{in_minmargins_radii->data} $\gets \{0,0,1,2,0,0\}$ assuming that the labels ordering is $(R,A,B,C,D,E)$ as illustrated in Section \ref{sc:dataterms}. Furthermore, a 0 min.~margin means no min.~margin.
+For the example shown in Fig.\ref{fig:bsceg}, \lstinline[mathescape=true]{in_minmargins_radii->data} $\gets (0,0,1,2,0,0)$ assuming that the labels ordering is $(R,A,B,C,D,E)$ as illustrated in Section \ref{sc:dataterms}. Furthermore, a 0 min.~margin means no min.~margin.
 
 \subsection{Hedgehog Shape Prior}
 \label{sc:hhog}
@@ -417,7 +409,7 @@ The following parameters are used to generate the set of pairs of ordered voxels
 \end{itemize}
 
 \begin{tcolorbox}
-\APM {\em requires a valid initial solution}. Thus, if using Hedgehogs then the initial labeling can not violate the Hedgehog scribbles in \lstinline{mask}. Simply make sure that the \lstinline{dataterms} encodes the  Hedgehog scribbles as hard constraints. That is for voxel $p$,
+\APM {\em requires a valid initial solution}. Thus, when using Hedgehogs the initial labeling must not violate the Hedgehog scribbles in \lstinline{mask}. Simply make sure that the \lstinline{dataterms} encodes the  Hedgehog scribbles as hard unary constraints. That is for voxel $p$,
 if \lstinline{mask->data[p]} is $\ell$ then
 \begin{equation*}
      \text{\lstinline{dataterms->data[}} v \times k+ p \text{\lstinline{]}}=
@@ -443,14 +435,14 @@ void setExpansionOrdering(int32_t seed) //overloaded
 void setExpansionOrdering(const Array2D<@uint32_t@>* lbls_order)
 \end{lstlisting}
 \begin{itemize}
-\item \lstinline{lbls_order} : is a pointer to a array wrapper. \lstinline{lbls_order->data} is a pointer to a an array of size \lstinline[mathescape=true]{n_labels} such that
+\item \lstinline{lbls_order} : is a pointer to an array wrapper. \lstinline{lbls_order->data} is a pointer to an array of size \lstinline[mathescape=true]{n_labels} such that
     \begin{enumerate}
 \item[] \lstinline{lbls_order->data[0]} $\gets$ index of the first label allowed to expand
 \item[] \lstinline{lbls_order->data[1]} $\gets$ index of the second label allowed to expand
 \item[] .... etc.
 \end{enumerate}
 \end{itemize}
-For the HINTS example shown in Fig.~\ref{fig:bsceg}, we could set the expansion ordering to $(R,B,D,A,C,E)$ by setting  \lstinline{lbls_order->data} to be $(0,2,4,1,3,5)$. Label indices are covered in the note in Section \ref{sc:dataterms}.
+For the HINTS example shown in Fig.~\ref{fig:bsceg}, we could set the expansion ordering to $(R,B,D,A,C,E)$ by setting  \lstinline{lbls_order->data} to be $(0,2,4,1,3,5)$. See note in Section \ref{sc:dataterms} regarding label indices/ordering.
 \\
 \begin{lstlisting}
 void setExpansionOrdering(int32_t str_id, int32_t end_id)
@@ -460,7 +452,7 @@ void setExpansionOrdering(int32_t str_id, int32_t end_id)
 \item \lstinline{end_id}: the index of the label at the end of the chain
 \end{itemize}
 \begin{tcolorbox}
-When $\Tree$ is chain \APM can find the global optimal solution. Currently, \APM has no internal mechanism to automatically detect that tree $\Tree$ is a chain. As such, you simply need to pass the indices of the labels at the start and end of the chain.
+When $\Tree$ is a chain \APM can find the global optimal solution. Currently, \APM has no internal mechanism to automatically detect that tree $\Tree$ is a chain. As such, you simply need to pass the indices of the labels at the start and end of the chain.
 \end{tcolorbox}
 
 \subsection{Optimization}
@@ -476,16 +468,16 @@ Array3D<@uint32_t@> * runPathMoves(
 \item \lstinline{IBFS}: Incremental Breadth First Search maxflow algorithm \cite{Goldberg2015}. Usually, faster than BK but not memory efficient (recommended solver).
 \item \lstinline{QPBO_SLVR}: Quadratic Pseudo Boolean Optimization solver \cite{rother2007optimizing}, similar performance to BK.
 \end{enumerate}
-\item \lstinline{final_energy}:  energy $E(\labelvars)$ of the final labeling $\labelvars$ that AlphaPathMove converged to.
+\item \lstinline{final_energy}:  energy $E(\labelvars)$ of the final labeling $\labelvars$ that \APM converged to.
 \item \lstinline{returned value}: a poitner to a 3D array wrapper say \lstinline{Output}.  \lstinline{Output->data} is pointer to an array that carries the final labeling $\labelvars$ that \APM converged to, such that \lstinline{Output->data[p]} is the index of label $\labelvar_p$, see note in Section \ref{sc:dataterms} regarding label indices/ordering.
 \end{itemize}
 \begin{tcolorbox}
-After calling \lstinline{runPathMoves} it is possible to call \lstinline{setInitialLabeling} and/or \lstinline{setDataTerms} to replace the current initial labeling and/or data terms, respectively. It is advisable to reuse an AlphaPathMove instance to avoid (de)allocating memory.
+After calling \lstinline{runPathMoves} it is possible to call \lstinline{setInitialLabeling} and/or \lstinline{setDataTerms} to replace the current initial labeling and/or data terms, respectively. It is advisable to reuse an \APM instance to avoid (de)allocating memory.
 \end{tcolorbox}
 
 \subsection{Thread Safe Logging}
 \APM is thread safe and it uses a native thread safe logger to log time and memory information, errors, and warnings encountered during runtime.
-To enable logging include \lstinline{TS_Logger.h} in your main and call \lstinline{TS_Logger::LogAllEvents();}. To disable logging call \lstinline{TS_Logger::UnlogAllEvents();}. Logging is enabled by default.
+To enable logging include \lstinline{TS_Logger.h} in your main and call \lstinline{TS_Logger::LogAllEvents()} before any of the \APM functions. To disable logging (not recommended) call \lstinline{TS_Logger::UnlogAllEvents()}. Logging is enabled by default.
 
 In addition to the displayed output, logged events are dumped in a file called \mbox{\lstinline{ts_log.dat.}} Finally, the logged events are prefixed by the thread id.
 It is {\em highly recommended} to enable all logging.
@@ -522,7 +514,7 @@ Array2D(@T@ * in_array, int64_t X, int64_t Y)
 Array2D(@void@);
 \end{lstlisting}
 This will create an empty array. Later on you could allocate an array by calling \lstinline{allocate}.
-\begin{lstlisting}
+\begin{lstlisting}[backgroundcolor=\color{white}]
 void allocate(int64_t X, int64_t Y)
 \end{lstlisting}
 This functions allocates memory of size \lstinline{X*Y}. This function also acts as resize, calling it will clear the previously wrapped array.
@@ -535,12 +527,12 @@ Array2D(@std::string@ filepath)
 \item \lstinline{filepath}: the path to the file where the array is stored.
 \end{itemize}
 For example,
-\begin{lstlisting}
+\begin{lstlisting}[backgroundcolor=\color{white}]
 Array2D<@uint64_t@> my_array("C:\\saved_array.mat");
 \end{lstlisting}
-would load the array saved in \lstinline{"C:\saved_array.mat"} into \lstinline{my_array}.
+will load the array saved in \lstinline{"C:\saved_array.mat"} into \lstinline{my_array}.
 \begin{tcolorbox}
-The .mat file should contain only one 2D array of the {\em same type} as declared template type, otherwise the wrapper will throw an exception. If there is more than one array in the .mat file, only the first array will be considered.
+The .mat file should contain only one 2D array of the {\em same type} as the declared template type, otherwise the wrapper will throw an exception. If there is more than one array in the .mat file, only the first array will be considered.
 \end{tcolorbox}
 
 \paragraph{Saving .mat Array:}\hspace{-2ex}
@@ -565,7 +557,7 @@ Alternatively, you could use the \lstinline{[]} operators, as such \lstinline{ar
 \item \lstinline{Y}: the size of the Y dimension ( number of columns)
 \item \lstinline{Z}: the size of the Z dimension ( number of slices)
 \item \lstinline{total_size}: the number of elements in the array, i.e.~\lstinline{X*Y*Z}
-\item \lstinline{data}: a pointer to the row-major array.
+\item \lstinline{data}: a pointer to the row-major array
 \item \lstinline{constX}: is the row-step size, used to access elements
 \item \lstinline{constX}: is the slice-step size, used to access elements.
 \end{itemize}
@@ -575,7 +567,7 @@ Alternatively, you could use the \lstinline{[]} operators, as such \lstinline{ar
 $Array2D(@T@ * in_array, int64_t X, int64_t Y, int64_t Z)
 \end{lstlisting}
 \begin{itemize}
-\item \lstinline{in_array}: a pointer to the wrapped array of type \lstinline{@T@}. The created \keyhl[Array3D] instance assumes ownership of \lstinline{in_array} memory resource and it will be responsible for freeing that resource.
+\item \lstinline{in_array}: a pointer to the wrapped array of type \lstinline{@T@}. The created \keyhl[Array3D] instance assumes ownership of \lstinline{in_array} memory resource and it will be responsible for freeing that resource
 \item \lstinline{X}: the size of the X dimension ( number of rows)
 \item \lstinline{Y}: the size of the Y dimension ( number of columns)
 \item \lstinline{Z}: the size of the Z dimension ( number of slices).
@@ -603,7 +595,7 @@ Array3D("C:\saved_array.mat");
 \end{lstlisting}
 would load the array saved in \lstinline{"C:\saved_array.mat"} into \lstinline{my_array}.
 \begin{tcolorbox}
-The .mat file should contain only one 3D array of the {\em same type} as declared template type, otherwise the wrapper will throw an exception. If there is more than one array in the .mat file, only the first array will be considered.
+The .mat file should contain only one 3D array of the {\em same type} as the declared template type, otherwise the wrapper will throw an exception. If there is more than one array in the .mat file, only the first array will be considered.
 \end{tcolorbox}
 
 \paragraph{Saving .mat Array:}
@@ -625,7 +617,7 @@ Alternatively, you could use the \lstinline{[]} operators, as such \lstinline{ar
 \APM could only be used for tree-metric smoothness functions. However, one of the most widely used smoothness functions in Computer Vision is Potts model, which is not tree-metric.
 Nonetheless, it is still possible to use \APM with (or without) Hedgehog priors for Potts model smoothness. The main idea is to create a tree-metric function $V_t$ that is equivalent to Potts model.
 
-Let $\labelset$ denote the set of labels. For Potts model smoothness,
+For Potts model smoothness,
 \begin{equation*}
     V(\ell,k)=
   \begin{cases}
