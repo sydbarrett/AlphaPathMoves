@@ -16,6 +16,7 @@
 *.tgz
 *.pdb
 *.pdb
+!CMakeLists.txt
 unscramble_pm_logfile.*
 build/*
 Documentation/*
