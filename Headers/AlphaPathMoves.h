@@ -456,7 +456,7 @@ namespace GC{
 		if (called_functions.sm_wpq_func)
 		{
 			bgn_log << LogType::ERROR << "APM: setting w_pq function could be done only once\n" << end_log;
-			throw("APM: setting w_pq function could be done only once");
+			throw std::runtime_error("APM: setting w_pq function could be done only once");
 		}
 		this->wpq_extra_data = wpq_extra_data;
 		this->func_getWpq = in_getWpq;
@@ -471,7 +471,7 @@ namespace GC{
 		if (!called_functions.default_mode && called_functions.mm_set)
 		{
 			bgn_log << LogType::ERROR << "APM: min-margins could be called only once\n" << end_log;
-			throw("APM: min-margins could be called only once");
+			throw std::runtime_error("APM: min-margins could be called only once");
 		}
 		for (uint32_t l = 0; this->mm_nh_shifts != nullptr && l < this->nlabels; ++l)
 			CLNDEL0D(this->mm_nh_shifts[l]);
@@ -558,7 +558,7 @@ namespace GC{
 		if (called_functions.dataterms)
 		{
 			bgn_log << LogType::ERROR << "APM: The dataterms could be set only once before a PathMove run\n" << end_log;
-			throw("APM: The dataterms could be set only once before a PathMove run");
+			throw std::runtime_error("APM: The dataterms could be set only once before a PathMove run");
 		}
 		assert(in_dataterms != nullptr);
 		assert(in_dataterms->X == dims[0] * dims[1] * dims[2]);
@@ -613,7 +613,7 @@ namespace GC{
 			exp_id < 0 || exp_id >= this->nlabels)
 		{
 			bgn_log << LogType::ERROR << "The following condition was violated: 0 <= label_id < n_labels\n" << end_log;
-			throw("The following condition was violated: 0 <= label_id < n_labels");
+			throw std::runtime_error("The following condition was violated: 0 <= label_id < n_labels");
 		}
 		this->expansionOrdering.chain_str_idx = str_id;
 		this->expansionOrdering.chain_end_idx = exp_id;
@@ -628,7 +628,7 @@ namespace GC{
 		if (seed<0)
 		{
 			bgn_log << LogType::ERROR << "The seed should be a postive integer\n" << end_log;
-			throw("The seed should be a postive integer");
+			throw std::runtime_error("The seed should be a postive integer");
 		}
 		this->expansionOrdering.chain_str_idx = -1;
 		this->expansionOrdering.chain_end_idx = -1;
@@ -643,7 +643,7 @@ namespace GC{
 		if (label_ordering->totalsize != this->nlabels)
 		{
 			bgn_log << LogType::ERROR << "The label ordering vector should be the same size as the number of labels\n" << end_log;
-			throw("The label ordering vector should be the same size as the number of labels");
+			throw std::runtime_error("The label ordering vector should be the same size as the number of labels");
 		}
 		for (int32_t i = 0; i < this->nlabels; ++i)
 		{
@@ -657,7 +657,7 @@ namespace GC{
 			if (!found)
 			{
 				bgn_log << LogType::ERROR << "Label "<< i<< " is missing from expansion ordering\n" << end_log;
-				throw("Label " + std::to_string(i) +" is missing from expansion ordering\n");
+				throw std::runtime_error("Label " + std::to_string(i) +" is missing from expansion ordering\n");
 			}
 		}
 
@@ -676,7 +676,7 @@ namespace GC{
 		if (called_functions.init_labeling)
 		{
 			bgn_log << LogType::ERROR << "APM: The initial labeling could be called only once before a PathMove run\n" << end_log;
-			throw("APM: The initial labeling could be called only once before a PathMove run");
+			throw std::runtime_error("APM: The initial labeling could be called only once before a PathMove run");
 		}
 		memcpy(this->labeling, in_labeling->data, sizeof(uint32_t)*this->ndspl);
 		this->called_functions.init_labeling = true;
@@ -689,7 +689,7 @@ namespace GC{
 		if (called_functions.init_labeling)
 		{
 			bgn_log << LogType::ERROR << "APM: The initial labeling could be called only once before a PathMove run\n" << end_log;
-			throw("APM: The initial labeling could be called only once before a PathMove run");
+			throw std::runtime_error("APM: The initial labeling could be called only once before a PathMove run");
 		}
 		std::fill_n(this->labeling, this->ndspl, lbl_id);
 		this->called_functions.init_labeling = true;
@@ -703,13 +703,13 @@ namespace GC{
 		if (called_functions.sm_wsize)
 		{
 			bgn_log << LogType::ERROR << "APM: The smoothness neighbourhood window size could be called only once\n" << end_log;
-			throw("APM: The smoothness neighbourhood window size could be called only once");
+			throw std::runtime_error("APM: The smoothness neighbourhood window size could be called only once");
 		}
 
 		if (in_windowsize % 2 == 0)
 		{
 			bgn_log << LogType::ERROR << "Neighbourhood window size must be an odd number\n" << end_log;
-			throw("Neighbourhood window size must be an odd number\n");
+			throw std::runtime_error("Neighbourhood window size must be an odd number\n");
 		}
 		double * nh_shift_mag = nullptr;
 		uint32_t n_shifts;
@@ -733,13 +733,13 @@ namespace GC{
 		if (called_functions.hhog_set)
 		{
 			bgn_log << LogType::ERROR << "APM: Hedgehogs attributes could be called only once\n" << end_log;
-			throw("APM: Hedgehogs attributes could be called only once");
+			throw std::runtime_error("APM: Hedgehogs attributes could be called only once");
 		}
 
 		if (hhog_windowsize != 0 && hhog_windowsize % 2 == 0)
 		{
 			bgn_log << LogType::ERROR << "Neighbourhood window size must be an odd number\n" << end_log;
-			throw("Neighbourhood window size must be an odd number\n");
+			throw std::runtime_error("Neighbourhood window size must be an odd number\n");
 		}
 		this->hhog_theta = theta;
 		bgn_log << LogType::INFO_LEVEL1 << "APM: Computing Hedghog Constraints...\n" << end_log;
@@ -815,7 +815,7 @@ namespace GC{
 		if (called_functions.sm_tree_lambda)
 		{
 			bgn_log << LogType::ERROR << "APM: Tree structure could set only once\n" << end_log;
-			throw("APM: Tree structure could set only once");
+			throw std::runtime_error("APM: Tree structure could set only once");
 		}
 
 		this->lambda = lambda;
@@ -1307,22 +1307,22 @@ Array3D<uint32_t> * AlphaPathMoves<captype, tcaptype, flowtype>::runPathMoves(ty
 	if (!called_functions.dataterms)
 	{
 		bgn_log << LogType::ERROR << "ARM: The dataterms must be set (or reset) before running PathMoves\n" << end_log;
-		throw("ARM: The dataterms must before running PathMoves\n");
+		throw std::runtime_error("ARM: The dataterms must before running PathMoves\n");
 	}
 	if (!called_functions.sm_wsize)
 	{
 		bgn_log << LogType::ERROR << "ARM: The smoohtness window size must be set before running PathMoves\n" << end_log;
-		throw("ARM: The smoohtness window size must be set before running PathMoves");
+		throw std::runtime_error("ARM: The smoohtness window size must be set before running PathMoves");
 	}
 	if (!called_functions.sm_tree_lambda)
 	{
 		bgn_log << LogType::ERROR << "ARM: The hierarchal tree must be set before running PathMoves\n" << end_log;
-		throw("ARM: The hierarchal tree must be set before running PathMoves");
+		throw std::runtime_error("ARM: The hierarchal tree must be set before running PathMoves");
 	}
 	if (!called_functions.init_labeling)
 	{
 		bgn_log << LogType::ERROR << "ARM: The initlal labling must be set before running PathMoves\n" << end_log;
-		throw("ARM: The initlal labling must be set before running PathMoves");
+		throw std::runtime_error("ARM: The initlal labling must be set before running PathMoves");
 	}
 
 
@@ -1401,7 +1401,7 @@ Array3D<uint32_t> * AlphaPathMoves<captype, tcaptype, flowtype>::runPathMoves(ty
 	else
 	{
 		bgn_log << LogType::ERROR << "Unsupported expansion ordering\n" << end_log;
-		throw("Unsupported expansion ordering\n");
+		throw std::runtime_error("Unsupported expansion ordering\n");
 	}
 	
 

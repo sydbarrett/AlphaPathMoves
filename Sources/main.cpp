@@ -170,7 +170,7 @@ int main(int argc, char *argv[])
 	{
 		bgn_log << LogType::ERROR << " Usage .... \n" << end_log;
 		bgn_log << LogType::ERROR << " AlphaPathMoves unittests_path [number of threads] \n" << end_log;
-		throw("Parameters were not set correctly");
+		throw std::runtime_error("Parameters were not set correctly");
 	}
 	std::string unittest_path(argv[1]);
 

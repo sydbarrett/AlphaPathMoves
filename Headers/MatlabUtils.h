@@ -117,19 +117,19 @@ bool MatlabUtils<T>::Load(std::string output_fname, T *& in_array, int32_t *& di
 	catch (exception e)
 	{
 		if (file_rawbytes) delete[]file_rawbytes;
-		throw("Could not load .mat file : " + std::string(e.what()));
+		throw std::runtime_error("Could not load .mat file : " + std::string(e.what()));
 	}
 	if (n_bytes <= 128)
 	{
 		if (file_rawbytes) delete[]file_rawbytes;
-		throw("Could not parse the .mat file: it can not be less than 128 bytes");
+		throw std::runtime_error("Could not parse the .mat file: it can not be less than 128 bytes");
 	}
 	//check that the first 4 bytes are not zeros
 	if (file_rawbytes[0] == 0 && file_rawbytes[1] == 0 && \
 		file_rawbytes[2] == 0 && file_rawbytes[3] == 0)
 	{
 		if (file_rawbytes) delete[]file_rawbytes;
-		throw("This is not a Level 5 .mat file");
+		throw std::runtime_error("This is not a Level 5 .mat file");
 	}
 
 	//Ignore the first 125 bytes 
@@ -137,7 +137,7 @@ bool MatlabUtils<T>::Load(std::string output_fname, T *& in_array, int32_t *& di
 	if (file_rawbytes[126] != 'I' && file_rawbytes[127] != 'M')
 	{
 		if (file_rawbytes) delete[]file_rawbytes;
-		throw("This library only supports little endian systems\n");
+		throw std::runtime_error("This library only supports little endian systems\n");
 	}
 	int32_t offset = 128;
 	int32_t matrix_tag_type, matrix_tag_size;
@@ -146,7 +146,7 @@ bool MatlabUtils<T>::Load(std::string output_fname, T *& in_array, int32_t *& di
 	if (matrix_tag_type != int32_t(MatDataType::miMATRIX))
 	{
 		if (file_rawbytes) delete[]file_rawbytes;
-		throw("This library only reads matrices of signed/unsigend numerical types");
+		throw std::runtime_error("This library only reads matrices of signed/unsigend numerical types");
 	}
 
 	int32_t array_flags_tag_type, array_flags_tag_size;
@@ -156,7 +156,7 @@ bool MatlabUtils<T>::Load(std::string output_fname, T *& in_array, int32_t *& di
 	if (array_flags_tag_type != int32_t(MatDataType::miUINT32) && array_flags_tag_size != 8)
 	{
 		if (file_rawbytes) delete[]file_rawbytes;
-		throw("Could not parse the file as a Level 5 .mat file");
+		throw std::runtime_error("Could not parse the file as a Level 5 .mat file");
 	}
 	if (matrix_class == int8_t(ArrayDataType::mxCELL_CLASS) ||
 		matrix_class == int8_t(ArrayDataType::mxSTRUCT_CLAS) ||
@@ -165,7 +165,7 @@ bool MatlabUtils<T>::Load(std::string output_fname, T *& in_array, int32_t *& di
 		matrix_class == int8_t(ArrayDataType::mxSPARSE_CLASS))
 	{
 		if (file_rawbytes) delete[]file_rawbytes;
-		throw("This library only reads matrices of signed/unsigend numerical types");
+		throw std::runtime_error("This library only reads matrices of signed/unsigend numerical types");
 	}
 
 
@@ -175,7 +175,7 @@ bool MatlabUtils<T>::Load(std::string output_fname, T *& in_array, int32_t *& di
 	if (dims_tag_type != int32_t(MatDataType::miINT32))
 	{
 		if (file_rawbytes) delete[]file_rawbytes;
-		throw("Could not parse the file as a Level 5 .mat file");
+		throw std::runtime_error("Could not parse the file as a Level 5 .mat file");
 	}
 	n_dims = dims_tag_size / sizeof(int32_t);
 	int32_t dims_zero_padding = dims_tag_size % 8;
@@ -189,11 +189,11 @@ bool MatlabUtils<T>::Load(std::string output_fname, T *& in_array, int32_t *& di
 	int32_t name_tag_type, name_tag_size;
 	readTag(file_rawbytes + offset, name_tag_type, name_tag_size);
 	offset += 8;
-	if (name_tag_type != int32_t(MatDataType::miINT8))
+	if (name_tag_type != int32_t(MatDataType::miINT8) || name_tag_size <= 4 || name_tag_size > 8)
 	{
 		if (file_rawbytes) delete[]file_rawbytes;
 		if (dims) delete[]dims;
-		throw("Could not parse the file as a Level 5 .mat file");
+		throw std::runtime_error("Could not parse the file as a Level 5 .mat file. Also, the matrix name should be between 5 and 8 letters, e.g name it no_name.\nSave your array A in Matlab as follows\n\tno_name=A;\n\tsave('filename.mat','no_name','-v6');.\n");
 	}
 	int32_t name_zero_padding = name_tag_size % 8;
 	if (name_zero_padding != 0)
@@ -218,7 +218,7 @@ bool MatlabUtils<T>::Load(std::string output_fname, T *& in_array, int32_t *& di
 	{
 		if (file_rawbytes) delete[]file_rawbytes;
 		if (dims) delete[]dims;
-		throw("Could not parse the file. The file and array data types not match");
+		throw std::runtime_error("Could not parse the file. The file and array data types not match");
 	}
 
 	in_array = new T[data_tag_size];
@@ -282,7 +282,7 @@ bool MatlabUtils<T>::Save(std::string output_fname, T * in_array, int32_t * dims
 		if (dims_tag) delete[] dims_tag;
 		if (array_name_tag) delete[] array_name_tag;
 		if (data_tag) delete[] data_tag;
-		throw("An error occured while trying to save the array :" + std::string(e.what()));
+		throw std::runtime_error("An error occured while trying to save the array :" + std::string(e.what()));
 	}
 
 	if (mat_header) delete[] mat_header;

@@ -131,7 +131,7 @@ namespace Utilities {
 			if (n_dims > 0)
 				tmp_dims = new int32_t[n_dims];
 			else
-				throw("Cannot save a dimension less array");
+				throw std::runtime_error("Cannot save a dimension less array");
 			for (int32_t i = 0; i < n_dims; ++i)
 				tmp_dims[i] = this->dims[i];
 			MatlabUtils<T>::Save(output_fname, lcl_array, tmp_dims, n_dims);
@@ -147,7 +147,7 @@ namespace Utilities {
 			if (version[0] != 'B' && version[1] != '4')
 			{
 				input_file.close();
-				throw("Parsing failed, old .dat versions are no longer supported");
+				throw std::runtime_error("Parsing failed, old .dat versions are no longer supported");
 			}
 			input_file.read(datatype, sizeof(char) * 3);
 			std::string dtype(datatype, 2);
